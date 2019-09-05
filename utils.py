@@ -11,6 +11,11 @@ from skimage import transform, img_as_ubyte
 from datetime import datetime, date
 import re
 import os
+import csv
+import pandas as pd
+import requests
+import xmltodict
+
 
 def select_coordinates_from_image(image_array):
     """Opens a window displaying the image and returns the pixel coordinates of clicked points.
@@ -61,29 +66,72 @@ def resize_by_scale(SCALE, img):
 def get_regex(deliminators):
     return '|'.join(map(re.escape, deliminators))
     
-    
+
+#returns a pandas df with logdata for the image
+# Timestamp format from exif 'YYYY:MM:DD HH:MM:SS'
 def get_log_data_for_time(timestamp):
     time_split =  re.split(get_regex([':', ' ']),str(timestamp))
     time_split = [int(n) for n in time_split]
-    im_date = datetime(*time_split)
-    print('im_date', im_date)
+    im_datetime = datetime(*time_split)
+    
+    log_directory_path = 'E:/SAU/Bilder Felles/Loggdata/Utpakket data'  
+    log_directory = os.fsencode(log_directory_path)
+    log_filename = None
+    log_start_datetime = datetime.fromtimestamp(0) #start of timestamp time (1970)
+
+    #Find the correct log file based on filename
+    for file in os.listdir(log_directory):
+        current_filename = os.fsdecode(file)
+        
+        log_time_split =  re.split(get_regex(['-', '_']),current_filename)
+        log_time_split[0] = '20%s'%log_time_split[0]
+        log_time_split = [int(n) for n in log_time_split[:-1]]
+        log_datetime = datetime(*log_time_split)
+        
+        if(im_datetime < log_datetime):
+            break
+        else:
+            log_filename = current_filename
+            log_start_datetime = log_datetime
+    
+   
+    #Get the number of seconds into the flight that the image was taken
+    im_offsetTime = (im_datetime - log_start_datetime).total_seconds()
+    
+    data = pd.read_csv(os.path.join(log_directory_path, log_filename ))
+    # find row with closest offset value
+    index = abs(data['offsetTime'] - im_offsetTime).idxmin()
+    
+    return data.loc[index, :]
 
     
-    directory_in_str = 'E:/SAU/Bilder Felles/Loggdata/Utpakket data'  
-    directory = os.fsencode(directory_in_str)
-
-    for file in os.listdir(directory):
-         filename = os.fsdecode(file)
-         log_time_split =  re.split(get_regex(['-', '_']),filename)
-         print((log_time_split[0]))
-         log_time_split[0] = '20%s'%log_time_split[0]
-         print((log_time_split[0]))
-         log_time_split = [int(n) for n in log_time_split[:-1]]
-         log_date = datetime(*log_time_split)
-         print('log_date', log_date)
+def get_elevation_for_lat_lon(lat, lon):
     
+    params = {
+        'request': 'Execute',
+        'service': 'WPS',
+        'version': '1.0.0',
+        'identifier': 'elevation',
+        'datainputs': 'lat=%f;lon=%f;epsg=4326' % (lat, lon),
+    }
+    
+    response = requests.get("http://openwps.statkart.no/skwms1/wps.elevation2", params=params)
+    response_dict = xmltodict.parse(response.content)
+    request_outputs = (response_dict['wps:ExecuteResponse']
+                    ['wps:ProcessOutputs']
+                    ['wps:Output'])
+    elevation = (next(item for item in request_outputs if item['ows:Identifier'] =='elevation')
+                    ['wps:Data']
+                    ['wps:LiteralData']
+                    ['#text'])
+                     
 
+    return float(elevation)
 
-
+#log = get_log_data_for_time('2019:08:21 21:31:22')
+#print('GPS(0):Lat', log['GPS(0):Lat'])
+#print('GPS(0):Long', log['GPS(0):Long'])
+#print('GPS(0):heightMSL', log['GPS(0):heightMSL'])
+#print('General:relativeHeight', log['General:relativeHeight'])
         
     

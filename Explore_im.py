@@ -56,7 +56,7 @@ plt.figure()
 plt.imshow(optical)
 
 tform = transform.ProjectiveTransform() #Or AffineTransform
-tform.estimate(src, dst)
+tform.estimate(dst, src)
 print(tform.params)
 #
 #optical_im_path = "E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0960.jpg"
@@ -65,13 +65,13 @@ print(tform.params)
 #optical = imageio.imread(optical_im_path)
 #thermal = imageio.imread(thermal_im_path)
 
-warped = transform.warp(optical, tform, output_shape=thermal.shape)
-#plt.figure()
-#plt.imshow(warped)
+warped = transform.warp(thermal, tform, output_shape=optical.shape)
+plt.figure()
+plt.imshow(warped)
 
 print(src.shape)
 plt.figure(figsize=(20, 10))
-plt.imshow(warped)
-plt.imshow(thermal, cmap='jet', alpha=0.7)
+plt.imshow(optical)
+plt.imshow(warped, cmap='jet', alpha=0.7)
 
 

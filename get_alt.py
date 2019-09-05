@@ -2,11 +2,9 @@ import sys
 import exifread
 import urllib.request
 import json
-from get_elevation import get_elevation_for_lat_lon
-from utils import get_log_data_for_time
+from utils import get_log_data_for_time, get_elevation_for_lat_lon
 
 def get_metadata(filename):
-    #Thank you borislip: https://mavicpilots.com/threads/altitude-information-from-exif-data-photos.32535/
     
     # get degress from GPS EXIF tag
     def degress(tag):
@@ -20,7 +18,8 @@ def get_metadata(filename):
         tags = exifread.process_file(f)
         
 
-    print(get_log_data_for_time( tags['Image DateTime']) )
+    log_data = get_log_data_for_time( tags['Image DateTime']) 
+
 
     
     # get lat/lon
@@ -31,21 +30,25 @@ def get_metadata(filename):
     #get terrain elevation from kartverket
     elevation = get_elevation_for_lat_lon(lat, lon)
     
-
     
     # get the altitude    
-    alt = tags["GPS GPSAltitude"] #Wrong
-    alt = float(alt.values[0].num) / float(alt.values[0].den)
-    agl = alt - elevation
+    height_MSL = log_data['GPS(0):heightMSL']
+    height_MGL = height_MSL - elevation
     
     # spit it out
-    print("Latitude[deg]     : %f" % lat)
-    print("Longitude[deg]    : %f" % lon)
-    print("Altitude(WRONG) [m, ASL] : %f" % alt)
-    print("elevation : %f" % elevation)
+    print("Latitude[deg]     : %f, (log %f)" % (lat, log_data['GPS(0):Lat']))
+    print("Longitude[deg]    : %f (log %f)" % (lon, log_data['GPS(0):Long']))
+    print("heightMSL" % height_MSL)
+    print("terrain elevation : %f" % elevation)
+    print("height_MGL : %f" % height_MGL)
+    
+    print()
+    print(lat, lon)
+    print( log_data['GPS(0):Lat'],  log_data['GPS(0):Long'])
     
     return {'GPSlatitude':lat, 'GPSlongditude':lon, 'elevation': elevation}
     
 
 optical_im_path = "E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0746.jpg"
 get_metadata(optical_im_path)
+
