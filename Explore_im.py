@@ -8,7 +8,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage import transform
-from utils import select_coordinates_from_image, resize_by_scale
+from utils import select_coordinates_from_image, resize_by_scale, get_metadata
 
 optical_im_path = "E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0746.jpg"
 thermal_im_path = "E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0747.jpg"
@@ -17,10 +17,10 @@ optical = imageio.imread(optical_im_path)
 thermal = imageio.imread(thermal_im_path)
 
 #SCALE = 1/4 #Use scale to make entire image fit on screen at same time.
-#dst= np.asarray(select_coordinates_from_image(resize_by_scale(SCALE, optical))) / SCALE
-#src = np.asarray(select_coordinates_from_image(thermal))
+#optical_pts= np.asarray(select_coordinates_from_image(resize_by_scale(SCALE, optical))) / SCALE
+#thermal_pts = np.asarray(select_coordinates_from_image(thermal))
 
-src = np.array([[ 81,  65],
+thermal_pts = np.array([[ 81,  65],
  [ 99, 127],
  [ 98, 187],
  [135, 173],
@@ -35,7 +35,7 @@ src = np.array([[ 81,  65],
  [214, 293],
  [130, 272]])
 
-dst = np.array([[ 940,  636],
+optical_pts = np.array([[ 940,  636],
  [1048,  932],
  [1024, 1200],
  [1200, 1132],
@@ -56,7 +56,7 @@ plt.figure()
 plt.imshow(optical)
 
 tform = transform.ProjectiveTransform() #Or AffineTransform
-tform.estimate(dst, src)
+tform.estimate(optical_pts, thermal_pts)
 print(tform.params)
 #
 #optical_im_path = "E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0960.jpg"
@@ -69,7 +69,7 @@ warped = transform.warp(thermal, tform, output_shape=optical.shape)
 plt.figure()
 plt.imshow(warped)
 
-print(src.shape)
+print(thermal_pts.shape)
 plt.figure(figsize=(20, 10))
 plt.imshow(optical)
 plt.imshow(warped, cmap='jet', alpha=0.7)

@@ -15,6 +15,12 @@ import csv
 import pandas as pd
 import requests
 import xmltodict
+import exifread
+import urllib.request
+import numpy as np
+import json
+import pytz
+from pytz import timezone
 
 
 def select_coordinates_from_image(image_array):
@@ -95,13 +101,30 @@ def get_log_data_for_time(timestamp):
             log_start_datetime = log_datetime
     
    
-    #Get the number of seconds into the flight that the image was taken
-    im_offsetTime = (im_datetime - log_start_datetime).total_seconds()
-    
+#    #Get the number of seconds into the flight that the image was taken
+#    im_offsetTime = (im_datetime - log_start_datetime).total_seconds()
+#    
     data = pd.read_csv(os.path.join(log_directory_path, log_filename ))
-    # find row with closest offset value
-    index = abs(data['offsetTime'] - im_offsetTime).idxmin()
+#    # find row with closest offset value
+#    index = abs(data['offsetTime'] - im_offsetTime).idxmin()
+
+    #CORRECT... compare gps time. GPS in zulutime vs im_time local. GPS:dateTimeStamp
+    def make_utc_datetime(gps_dateTimeStamp):
+        time_split =  re.split(get_regex(['-', 'T',':', 'Z']),str(gps_dateTimeStamp))
+        time_split = [int(n) for n in time_split[:-1]]
+        datetime_obj = datetime(*time_split)
+        utc = pytz.utc
+        
+        return utc.localize(datetime_obj)
+
     
+    amsterdam = timezone('Europe/Amsterdam')
+
+    log_datetimes = [make_utc_datetime(d) for d in data['GPS:dateTimeStamp']]
+
+    time_deltas = [abs(amsterdam.localize(im_datetime)- d) for d in log_datetimes]
+    index = time_deltas.index(min(time_deltas))
+
     return data.loc[index, :]
 
     
@@ -128,7 +151,183 @@ def get_elevation_for_lat_lon(lat, lon):
 
     return float(elevation)
 
+
+def get_logdata(filename):
+    # get degress from GPS EXIF tag
+    def degress(tag):
+        d = float(tag.values[0].num) / float(tag.values[0].den)
+        m = float(tag.values[1].num) / float(tag.values[1].den)
+        s = float(tag.values[2].num) / float(tag.values[2].den)
+        return d + (m / 60.0) + (s / 3600.0)
+    
+    # read the exif tags
+    with open(filename, 'rb') as f:
+        tags = exifread.process_file(f)
+        
+    log_data = get_log_data_for_time( tags['Image DateTime']) 
+    return(log_data)
+    
+
+def get_metadata(filename):
+    
+    # get degress from GPS EXIF tag
+    def degress(tag):
+        d = float(tag.values[0].num) / float(tag.values[0].den)
+        m = float(tag.values[1].num) / float(tag.values[1].den)
+        s = float(tag.values[2].num) / float(tag.values[2].den)
+        return d + (m / 60.0) + (s / 3600.0)
+    
+    # read the exif tags
+    with open(filename, 'rb') as f:
+        tags = exifread.process_file(f)
+        
+    log_data = get_log_data_for_time( tags['Image DateTime']) 
+    
+    # get lat/lon
+    lat = degress(tags["GPS GPSLatitude"])
+    lon = degress(tags["GPS GPSLongitude"])
+
+   
+    #get terrain elevation from kartverket
+    elevation = get_elevation_for_lat_lon(lat, lon)
+    
+    
+    # get the altitude    
+    height_MSL = log_data['GPS(0):heightMSL']
+    height_MGL = height_MSL - elevation
+    
+    # spit it out
+#    print(filename)
+#    print("Latitude[deg]     : %f, (log %f)" % (lat, log_data['GPS(0):Lat']))
+#    print("Longitude[deg]    : %f (log %f)" % (lon, log_data['GPS(0):Long']))
+#    print("heightMSL: %f" % height_MSL)
+#    print("terrain elevation : %f" % elevation)
+#    print("height_MGL : %f" % height_MGL)
+#    print('rel_h', log_data['General:relativeHeight'])
+#    
+#    print()
+#    print(lat, lon)
+#    print( log_data['GPS(0):Lat'],  log_data['GPS(0):Long'])
+    
+    return {'GPSlatitude_exif':lat,
+            'GPSlongditude_exif':lon,
+            'GPSlatitude_log':log_data['GPS(0):Lat'],
+            'GPSlongditude_log':log_data['GPS(0):Long'],
+            'elevation_terrain': elevation,
+            'heightMSL': height_MSL,
+            'height_MGL': height_MGL,
+            'IMU_ATTI(0):gyro:X': log_data['IMU_ATTI(0):gyro:X'],
+            'IMU_ATTI(0):gyro:Y': log_data['IMU_ATTI(0):gyro:Y'],
+            'IMU_ATTI(0):gyro:Z': log_data['IMU_ATTI(0):gyro:Z']}
+    
+
+def write_pts(filename, pts):
+    File_object = open(filename,"a+")
+    for pt in pts:
+        print(type(pt), pt, type(pt[0]))
+        File_object.write('%d,%d;'%(int(pt[0]),int(pt[1])))
+        
+    File_object.write('\n')
+    File_object.close()
+    
+def read_pts(filename):
+    File_object = open(filename,"r")
+    coord_set = File_object.readlines()
+    all_pts = []
+
+    
+    for coords in coord_set:
+        coords_list = list(filter(lambda s: s != '\n' ,  coords.split(';')))
+        coords_list = list(map( lambda l: list(map( lambda c: int(c), l.split(',')))  , coords_list));
+        all_pts.append(np.asarray(coords_list))
+        
+    File_object.close()
+    return(all_pts)
+        
+
+def write_transformation(filename, tform):
+    File_object = open(filename,"a+")
+    
+    numbers_to_write = tform.params.flatten().tolist()
+    for n in numbers_to_write:
+        File_object.write('%f,'%n)
+        
+    File_object.write('\n')
+    File_object.close()
+    
+    
+def read_transformations(filename):
+    File_object = open(filename,"r")
+    transformations = File_object.readlines()
+    all_transforms = []
+    
+    for t in transformations:
+        t_array = np.asarray(list(filter(lambda s: s != '\n' ,  t.split(',')))).astype(np.float).reshape(3,3)
+        all_transforms.append(t_array)
+    
+    File_object.close()
+    return all_transforms
+
+
+def write_metadata(filename, data):
+    File_object = open(filename,"a+")
+    File_object.write(json.dumps(data))
+    File_object.write('\n')
+    File_object.close()
+    
+
+def read_metadata(filename):
+    File_object = open(filename,"r")
+    metadatas = File_object.readlines()
+    all_metadata = []
+    
+    for m in metadatas:
+        all_metadata.append(json.loads(m))
+        
+    File_object.close()
+    return(all_metadata)
+   
+    
+def write_filename(filename, im_name):
+    File_object = open(filename,"a+")
+    File_object.write('%s,'%im_name)
+    File_object.close()
+    
+    
+def read_filename(filename):
+    File_object = open(filename,"r")
+    filenames = list(filter(None,File_object.readline().split(',') ))
+            
+    File_object.close()
+    return filenames
+
+
+#increment image number by 1
+def get_next_image(im_name):
+    im_name_part = im_name[-12:]
+    dir_part=im_name[:-12]    
+    next_im_name = re.sub(r"\d+", str(int(re.search(r"\d+" , im_name_part).group(0)) + 1).zfill(4), im_name_part)
+    
+    return os.path.join(dir_part, next_im_name)
+
+
+def get_im_num(im_name):
+    return int(re.search(r"\d+" , im_name[-12:]).group(0))
+
+
+def increment_im(im_name, n):
+    im_name_part = im_name[-12:]
+    dir_part=im_name[:-12]    
+    next_im_name = re.sub(r"\d+", str(int(re.search(r"\d+" , im_name_part).group(0)) + n).zfill(4), im_name_part)
+    
+    return os.path.join(dir_part, next_im_name)
+    
+
+
 #log = get_log_data_for_time('2019:08:21 21:31:22')
+#for k in log.keys():
+#    print(k)
+
 #print('GPS(0):Lat', log['GPS(0):Lat'])
 #print('GPS(0):Long', log['GPS(0):Long'])
 #print('GPS(0):heightMSL', log['GPS(0):heightMSL'])
