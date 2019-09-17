@@ -224,7 +224,6 @@ def get_metadata(filename):
 def write_pts(filename, pts):
     File_object = open(filename,"a+")
     for pt in pts:
-        print(type(pt), pt, type(pt[0]))
         File_object.write('%d,%d;'%(int(pt[0]),int(pt[1])))
         
     File_object.write('\n')
