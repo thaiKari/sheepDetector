@@ -11,9 +11,10 @@ import imageio
 from skimage import transform
 from sklearn.linear_model import LinearRegression, RANSACRegressor
 import math
-from utils import get_metadata
+from utils import get_metadata, get_line_mask
 from sklearn import linear_model
 import pandas as pd
+import matplotlib.cm as cm
 
 
 
@@ -198,10 +199,9 @@ def showTransform( im, im_to_transform, t, title, inverse = False, alpha = 0.8 )
 
 
 #Check result
-#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0698.JPG' #SAME
-#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0882.JPG' #Avg better
-#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyving Dødens dal 06 09 2019/DJI_0691.JPG' #Same
-Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/101MEDIA/DJI_0491.JPG' #Model better
+#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0698.JPG'
+Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0702.JPG' 
+#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0792.JPG' 
 
 optical1 = imageio.imread(Image_path)
 thermal1 = imageio.imread( get_next_image(Image_path))
@@ -215,8 +215,15 @@ plt.imshow(thermal1, alpha=0.8)
 
 #just use average:
 t_avg = np.mean(transforms, axis=0)
-#showTransform(optical1, thermal1, t_avg, 'avg')
-showTransform(thermal1, optical1, t_avg, 'avg_inv', inverse=True, alpha = 0.2)
+showTransform(optical1, thermal1, t_avg, 'avg')
+#showTransform(thermal1, optical1, t_avg, 'avg_inv', inverse=True, alpha = 0.2)
+lines = get_line_mask(optical1)
+thermal_t = transform.warp(thermal1, transform.AffineTransform(t_avg), output_shape=optical1.shape)
+
+plt.figure(figsize=(20, 10))
+plt.imshow(thermal_t)
+plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
+
 
 
 
@@ -226,7 +233,10 @@ X_im = df # np.asarray(list({ k: float(log_for_im[k]) for k in keys_of_interest}
 t_params = np.asarray(list(map( lambda m: m.predict(X_im)[0] , models ))).reshape(3,3)
 #showTransform(optical1, thermal1, t_params, 'model')
 showTransform(thermal1, optical1, t_params, 'model', inverse=True, alpha = 0.2)
-
+thermal_t = transform.warp(thermal1, transform.AffineTransform(t_params), output_shape=optical1.shape)
+plt.figure(figsize=(20, 10))
+plt.imshow(thermal_t)
+plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
 
 
 ## use 2nd degree model

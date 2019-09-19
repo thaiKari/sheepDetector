@@ -21,6 +21,10 @@ import numpy as np
 import json
 import pytz
 from pytz import timezone
+import cv2
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import glob
 
 
 def select_coordinates_from_image(image_array):
@@ -321,6 +325,116 @@ def increment_im(im_name, n):
     
     return os.path.join(dir_part, next_im_name)
     
+
+def get_lines(im):    
+    if(im.shape[2] == 3):
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    
+  
+    im_s = cv2.resize(im, (400,300))
+    blur = cv2.GaussianBlur(im_s,(3,3),0)
+    im_lines = cv2.Canny(blur,100,200)
+    im = cv2.resize(im_lines, (im.shape[1], im.shape[0]))
+    
+    if(im.shape[0]> 1000):
+        kernel = np.ones((9,9),np.uint8)
+        im = cv2.erode(im,kernel,iterations = 1)
+    
+    return im
+
+
+def get_line_mask(im):
+    lines = get_lines(im)
+    lines[lines > 50] = 255
+    return np.ma.masked_where(lines < 50, lines)
+
+
+def get_transform_from_mathching_pts(key_pts_input, key_pts_target):
+    tform = transform.ProjectiveTransform() #Or AffineTransform
+    tform.estimate(key_pts_input, key_pts_target)
+    return tform.params
+    
+
+def get_transforms_from_matching_pts_list(target_list,input_list):
+    transforms_list = []
+    
+    for i in range(len(input_list)):
+        transforms_list.append(get_transform_from_mathching_pts(input_list[i], target_list[i]))
+        
+    return transforms_list
+    
+
+#pts is list of x,y pts in a single image
+def undistort_pts( pts, K, dist, h, w):
+    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+    undistorted = cv2.undistortPoints(np.asarray(pts, np.float32).reshape((pts.shape[0],1,2)), K, dist, P=newcameramtx)
+    return undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
+    
+
+
+optical = read_pts('optical_key_pts_check2.txt')
+thermal = read_pts('thermal_key_pts_check2.txt')
+thermal_im_shape = (480, 640)
+h = 480
+w = 640
+
+K = np.load("./camera_params_thermal/K.npy")
+dist = np.load("./camera_params_thermal/dist.npy")
+
+thermal_undistorted = list(map( lambda pts: undistort_pts( pts, K, dist, h, w), thermal))
+
+
+
+x_o = thermal[-1][:, 0]
+y_o = thermal[-1][:, 1]
+plt.figure()
+plt.scatter(x_o, y_o)
+plt.ylim(ymin=0)
+plt.xlim(xmin=0)
+
+x = thermal_undistorted[-1][:,0]
+y = thermal_undistorted[-1][:,1]
+x = x.reshape(x.shape[0])
+y = y.reshape(y.shape[0])
+
+plt.figure()
+plt.scatter(x,y)
+plt.ylim(ymin=0)
+plt.xlim(xmin=0)
+
+print(x_o)
+
+transforms = get_transforms_from_matching_pts_list(thermal_undistorted, optical)
+print(transforms)
+
+t2 = read_transformations('transformations_corrected.txt')
+print(t2)
+
+transforms_flattened= list(map( lambda t: t.flatten(), transforms ))
+t2_flattened = list(map( lambda t: t.flatten(), t2 ))
+
+
+
+
+print(len(transforms))
+print(len(t2))
+
+plt.figure(figsize=(20,10))
+for i in range(9):
+
+    y1 = list(map(lambda t: float(t[i]), transforms_flattened))
+    y2 = list(map(lambda t: float(t[i]), t2_flattened))
+
+    plt.subplot(3, 3, i +1)
+    plt.boxplot([y1, y2])
+
+    
+#img = cv2.imread('E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/dji_0651.jpg')
+#lines = get_line_mask(img)
+#plt.figure(figsize=(20, 10))
+#plt.imshow(img)
+#plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
+
 
 
 #log = get_log_data_for_time('2019:08:21 21:31:22')

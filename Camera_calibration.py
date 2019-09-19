@@ -6,10 +6,11 @@ Created on Mon Sep 16 14:48:38 2019
 """
 import numpy as np
 import cv2
-from matplotlib import pyplot as plt
 import glob
-from utils import read_pts, get_im_num, increment_im, get_next_image
+from utils import read_pts, get_im_num, increment_im, get_next_image, undistort_pts
 import os
+import matplotlib.pyplot as plt
+
 
 
 
@@ -45,7 +46,8 @@ for fname in images:
 #    
     corners = corners.reshape(54,1,2)
     i = i + 1
-
+    
+    
 
 
 ##CALIBRATION THERMAL
@@ -60,46 +62,89 @@ np.save("./camera_params_thermal/dist", dist)
 np.save("./camera_params_thermal/rvecs", rvecs)
 np.save("./camera_params_thermal/tvecs", tvecs)
 
-
-#UNDISTORT TEST THERMAL:
-#path = './camera_calibration/test.jpg'
-#path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/dji_0881.jpg'
-#path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/dji_0861.jpg'
-path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/101MEDIA/dji_0662.jpg'
-path = 'E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/dji_0652.jpg'
-img = cv2.imread(path)
+## Visualize after undistort:
 h,  w = img.shape[:2]
-newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+i = 0
 
-mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
-dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
+for fname in images:
 
-plt.figure()
-plt.imshow(img)
-plt.figure()
-plt.imshow(dst)
+    img = cv2.imread(fname)
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    corners = corners_thermal[i] #undistored_corners[i]
+#    x = corners[:,0]
+#    y = corners[:,1]
 
-#Correct all thermal images in dir:
-path_in = 'E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019'
-path_out = 'E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/corrected'
-
-first_im = 'DJI_0651.jpg'
-last_im_optical='DJI_0691.jpg'
-cur_im = first_im
-
-print(cur_im)
-
-while get_im_num(cur_im) <= get_im_num(last_im_optical):
-    img = cv2.imread(os.path.join(path_in, get_next_image(cur_im)))#thermal_im_path[i] ))
     h,  w = img.shape[:2]
     newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+#    mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
+#    dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
     
-    mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
-    dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
-    print(os.path.join(path_out, str(increment_im(cur_im, 0))))
-    cv2.imwrite( os.path.join(path_out, str(increment_im(cur_im, 1))), dst)
+    dst = cv2.undistort(img, K, dist, None, newcameramtx)
+    undistorted = cv2.undistortPoints(np.asarray(corners, np.float32).reshape((corners.shape[0],1,2)), K, dist, P=newcameramtx)
+    print(undistorted.shape)
+    undistorted = undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
+#    
+#    undistorted = []
+#    for pt in corners: #x,y
+#        x = pt[0]
+#        y = pt[1]
+#        undistorted.append( [mapx[y,x], mapy[y,x]])
+#        
+#    undistorted = np.asarray(undistorted)
+
+    for j in range(corners.shape[0]):
+        cv2.circle(dst,(int(undistorted[j,0]),int(undistorted[j,1])),4,(255,0,0),-1)
     
-    cur_im = increment_im(cur_im, 2)
+    plt.figure()
+    plt.imshow(dst)
+#    
+    i = i + 1
+    
+
+##UNDISTORT TEST THERMAL:
+##path = './camera_calibration/test.jpg'
+##path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/dji_0881.jpg'
+#path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/dji_0861.jpg'
+##path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/101MEDIA/dji_0662.jpg'
+##path = 'E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/dji_0652.jpg'
+#img = cv2.imread(path)
+#print(img.shape)
+#h,  w = img.shape[:2]
+#print(h,w)
+#newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+#
+#mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
+#dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
+#
+#plt.figure()
+#plt.imshow(img)
+#plt.figure()
+#plt.imshow(dst)
+#
+##Correct all thermal images in dir:
+#path_in = './camera_calibration'
+#path_out = './camera_calibration/corrected'
+#
+#first_im = 'DJI_0781.jpg'
+#last_im_optical='DJI_0781.jpg'
+#cur_im = first_im
+#
+#K = np.load("./camera_params_thermal/K.npy")
+#dist = np.load("./camera_params_thermal/dist.npy")
+#
+#print(cur_im)
+#
+#while get_im_num(cur_im) <= get_im_num(last_im_optical):
+#    img = cv2.imread(os.path.join(path_in, get_next_image(cur_im)))
+#    h,  w = img.shape[:2]
+#    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+#    
+#    mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
+#    dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
+#    print(os.path.join(path_out, str(increment_im(cur_im, 0))))
+#    cv2.imwrite( os.path.join(path_out, str(increment_im(cur_im, 1))), dst)
+#    
+#    cur_im = increment_im(cur_im, 2)
 
 
 ## crop the image
