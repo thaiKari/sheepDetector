@@ -84,7 +84,7 @@ def get_log_data_for_time(timestamp):
     time_split = [int(n) for n in time_split]
     im_datetime = datetime(*time_split)
     
-    log_directory_path = 'E:/SAU/Bilder Felles/Loggdata/Utpakket data'  
+    log_directory_path = './Loggdata/Utpakket data'  
     log_directory = os.fsencode(log_directory_path)
     log_filename = None
     log_start_datetime = datetime.fromtimestamp(0) #start of timestamp time (1970)
@@ -332,7 +332,7 @@ def get_lines(im):
     
   
     im_s = cv2.resize(im, (400,300))
-    blur = cv2.GaussianBlur(im_s,(3,3),0)
+    blur = cv2.GaussianBlur(im_s,(5,5),0)
     im_lines = cv2.Canny(blur,100,200)
     im = cv2.resize(im_lines, (im.shape[1], im.shape[0]))
     
@@ -348,6 +348,16 @@ def get_line_mask(im):
     lines[lines > 50] = 255
     return np.ma.masked_where(lines < 50, lines)
 
+##Image_path = './camera_calibration/test/dji_0691.jpg'
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0698.JPG'
+#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0702.JPG' 
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0792.JPG'
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/dji_0651.jpg'
+#img = cv2.imread(Image_path)
+#lines = get_line_mask(img)
+#plt.figure(figsize=(20, 10))
+#plt.imshow(img, alpha = 0.8)
+#plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
 
 def get_transform_from_mathching_pts(key_pts_input, key_pts_target):
     tform = transform.ProjectiveTransform() #Or AffineTransform
@@ -364,76 +374,113 @@ def get_transforms_from_matching_pts_list(target_list,input_list):
     return transforms_list
     
 
-#pts is list of x,y pts in a single image
-def undistort_pts( pts, K, dist, h, w):
-    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+##pts is list of x,y pts in a single image
+#def undistort_pts( pts, K, dist, h, w):
+#    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+#    undistorted = cv2.undistortPoints(np.asarray(pts, np.float32).reshape((pts.shape[0],1,2)), K, dist, P=newcameramtx)
+#    return undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
+
+
+##Correct all images in dir:
+def correct_all_images_in_dir(path_in, path_out):
+    images = glob.glob(path_in + '/*.jpg')
+    print(path_in + '/*.jpg', images)
+    
+    
+    K = np.load("./camera_params_thermal/K.npy")
+    dist = np.load("./camera_params_thermal/dist.npy")
+    
+    for fname in images:
+        print('undistorting' + fname)
+        img = cv2.imread(fname)
+        h,  w = img.shape[:2]
+        newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))
+        
+        mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
+        dst = cv2.remap(img,mapx,mapy,cv2.INTER_LINEAR)
+        cv2.imwrite( os.path.join(path_out, fname[-12:]), dst)
+    
+
+#undistort thermal_im
+def undistort_image(img):
+    K = np.load("./camera_params_thermal/K.npy")
+    dist = np.load("./camera_params_thermal/dist.npy")
+    h,  w = img.shape[:2]
+    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))    
+#    mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(w,h),5)
+    
+    return cv2.undistort(img, K, dist, None, newcameramtx)
+    
+
+def undistort_pts(pts):
+    K = np.load("./camera_params_thermal/K.npy")
+    dist = np.load("./camera_params_thermal/dist.npy")
+    h,  w = (480, 640)
+    newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(w,h),1,(w,h))  
     undistorted = cv2.undistortPoints(np.asarray(pts, np.float32).reshape((pts.shape[0],1,2)), K, dist, P=newcameramtx)
     return undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
+
+
+#Image_path = './camera_calibration/DJI_0007.jpg'
+#img = cv2.imread(Image_path)
+#print(img.shape)
+    
+#optical = read_pts('optical_key_pts_check2.txt')
+#thermal = read_pts('thermal_key_pts_check2.txt')
+#thermal_im_shape = (480, 640)
+#h = 480
+#w = 640
+#
+#K = np.load("./camera_params_thermal/K.npy")
+#dist = np.load("./camera_params_thermal/dist.npy")
+#
+#thermal_undistorted = list(map( lambda pts: undistort_pts( pts, K, dist, h, w), thermal))
+#
+#x_o = thermal[-1][:, 0]
+#y_o = thermal[-1][:, 1]
+#plt.figure()
+#plt.scatter(x_o, y_o)
+#plt.ylim(ymin=0)
+#plt.xlim(xmin=0)
+#
+#x = thermal_undistorted[-1][:,0]
+#y = thermal_undistorted[-1][:,1]
+#x = x.reshape(x.shape[0])
+#y = y.reshape(y.shape[0])
+#
+#plt.figure()
+#plt.scatter(x,y)
+#plt.ylim(ymin=0)
+#plt.xlim(xmin=0)
+#
+#print(x_o)
+#
+#transforms = get_transforms_from_matching_pts_list(thermal_undistorted, optical)
+#print(transforms)
+#
+#t2 = read_transformations('transformations_corrected.txt')
+#print(t2)
+#
+#transforms_flattened= list(map( lambda t: t.flatten(), transforms ))
+#t2_flattened = list(map( lambda t: t.flatten(), t2 ))
+#
+#
+#
+#
+#print(len(transforms))
+#print(len(t2))
+#
+#plt.figure(figsize=(20,10))
+#for i in range(9):
+#
+#    y1 = list(map(lambda t: float(t[i]), transforms_flattened))
+#    y2 = list(map(lambda t: float(t[i]), t2_flattened))
+#
+#    plt.subplot(3, 3, i +1)
+#    plt.boxplot([y1, y2])
+
     
 
-
-optical = read_pts('optical_key_pts_check2.txt')
-thermal = read_pts('thermal_key_pts_check2.txt')
-thermal_im_shape = (480, 640)
-h = 480
-w = 640
-
-K = np.load("./camera_params_thermal/K.npy")
-dist = np.load("./camera_params_thermal/dist.npy")
-
-thermal_undistorted = list(map( lambda pts: undistort_pts( pts, K, dist, h, w), thermal))
-
-
-
-x_o = thermal[-1][:, 0]
-y_o = thermal[-1][:, 1]
-plt.figure()
-plt.scatter(x_o, y_o)
-plt.ylim(ymin=0)
-plt.xlim(xmin=0)
-
-x = thermal_undistorted[-1][:,0]
-y = thermal_undistorted[-1][:,1]
-x = x.reshape(x.shape[0])
-y = y.reshape(y.shape[0])
-
-plt.figure()
-plt.scatter(x,y)
-plt.ylim(ymin=0)
-plt.xlim(xmin=0)
-
-print(x_o)
-
-transforms = get_transforms_from_matching_pts_list(thermal_undistorted, optical)
-print(transforms)
-
-t2 = read_transformations('transformations_corrected.txt')
-print(t2)
-
-transforms_flattened= list(map( lambda t: t.flatten(), transforms ))
-t2_flattened = list(map( lambda t: t.flatten(), t2 ))
-
-
-
-
-print(len(transforms))
-print(len(t2))
-
-plt.figure(figsize=(20,10))
-for i in range(9):
-
-    y1 = list(map(lambda t: float(t[i]), transforms_flattened))
-    y2 = list(map(lambda t: float(t[i]), t2_flattened))
-
-    plt.subplot(3, 3, i +1)
-    plt.boxplot([y1, y2])
-
-    
-#img = cv2.imread('E:/SAU/Bilder Felles/Sorterte/Flyving_dd_06 09 2019/dji_0651.jpg')
-#lines = get_line_mask(img)
-#plt.figure(figsize=(20, 10))
-#plt.imshow(img)
-#plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
 
 
 

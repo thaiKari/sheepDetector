@@ -7,9 +7,10 @@ Created on Mon Sep 16 14:48:38 2019
 import numpy as np
 import cv2
 import glob
-from utils import read_pts, get_im_num, increment_im, get_next_image, undistort_pts
+from utils import read_pts, get_im_num, increment_im, get_next_image, undistort_pts, write_pts
 import os
 import matplotlib.pyplot as plt
+import math
 
 
 
@@ -25,13 +26,18 @@ objp[:,:2] = np.mgrid[0:9,0:6].T.reshape(-1,2)
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('C:/Users/karim/Projects/SAU/camera_calibration/new2_1709/termisk/*.jpg')
-corners_optical = read_pts('optical_key_pts_check2.txt')
-corners_thermal = read_pts('thermal_key_pts_check2.txt')
+images = glob.glob('C:/Users/karim/Projects/SAU/camera_calibration/00_allThermal/*.jpg')
+#images_optical = glob.glob('camera_calibration/Optical_and_thermal/optical/*.jpg')
+#corners_optical = read_pts('Newest_data/Old2/optical_key_pts_check2.txt')
+corners_thermal = read_pts('./camera_calibration/00_allThermal/00_corner_coords.txt')
 
 
 ##VISUALIZE
 i = 0
+plt.figure(figsize=(20,40))
+plt.subplots_adjust(wspace=.1, hspace=.1)
+Rows = math.ceil(len(images)/6)
+
 for fname in images:
 
     img = cv2.imread(fname)
@@ -40,8 +46,9 @@ for fname in images:
 
     for j in range(corners.shape[0]):
         cv2.circle(img,(int(corners[j,0]),int(corners[j,1])),4,(255,0,0),-1)
-#    
-    plt.figure()
+
+    plt.subplot(Rows, 6, i+1)
+    plt.axis('off')
     plt.imshow(img)
 #    
     corners = corners.reshape(54,1,2)
@@ -55,16 +62,17 @@ imgpoints = np.asarray(corners_thermal, np.float32)
 objpoints = list(map (lambda p: objp , corners_thermal))
 objp = np.array([objp])
 
-ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
-np.save("./camera_params_thermal/ret", ret)
-np.save("./camera_params_thermal/K", K)
-np.save("./camera_params_thermal/dist", dist)
-np.save("./camera_params_thermal/rvecs", rvecs)
-np.save("./camera_params_thermal/tvecs", tvecs)
+#ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+#np.save("./camera_calibration/00_allThermal/calib_params/ret", ret)
+#np.save("./camera_calibration/00_allThermal/calib_params/K", K)
+#np.save("./camera_calibration/00_allThermal/calib_params/dist", dist)
+#np.save("./camera_calibration/00_allThermal/calib_params/rvecs", rvecs)
+#np.save("./camera_calibration/00_allThermal/calib_params/tvecs", tvecs)
 
 ## Visualize after undistort:
 h,  w = img.shape[:2]
 i = 0
+plt.figure(figsize=(20,40))
 
 for fname in images:
 
@@ -81,7 +89,6 @@ for fname in images:
     
     dst = cv2.undistort(img, K, dist, None, newcameramtx)
     undistorted = cv2.undistortPoints(np.asarray(corners, np.float32).reshape((corners.shape[0],1,2)), K, dist, P=newcameramtx)
-    print(undistorted.shape)
     undistorted = undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
 #    
 #    undistorted = []
@@ -95,11 +102,15 @@ for fname in images:
     for j in range(corners.shape[0]):
         cv2.circle(dst,(int(undistorted[j,0]),int(undistorted[j,1])),4,(255,0,0),-1)
     
-    plt.figure()
+    plt.subplot(Rows, 6, i+1)
+    plt.axis('off')
     plt.imshow(dst)
 #    
     i = i + 1
     
+
+
+   
 
 ##UNDISTORT TEST THERMAL:
 ##path = './camera_calibration/test.jpg'

@@ -20,19 +20,19 @@ import matplotlib.cm as cm
 
 from utils import  read_transformations, read_metadata, read_filename, get_next_image, get_logdata, get_metadata
 
-images = read_filename('image_list_corrected.txt')
-
-
-transforms = read_transformations('transformations_corrected.txt')
+#images = read_filename('./Newest_data/image_list.txt')
+#
+#
+transforms = read_transformations('./Newest_data/transformations_corrected.txt')
 transforms_flattened = list(map( lambda t: t.flatten(), transforms ))
 
-data =[]
-log_data = []
-
-for im in images:
-   log_data.append( get_logdata(im))
-   data.append(get_metadata(im))
-
+#data =[]
+#log_data = []
+#
+#for im in images:
+#   log_data.append( get_logdata(im))
+#   data.append(get_metadata(im))
+#
 
 #see if there is correlation with something in the log.
 keys_of_interest = ['IMU_ATTI(1):pitch', 'IMU_ATTI(1):roll']#, 'IMU_ATTI(1):yaw'] ... yaw does not seem to effect
@@ -42,7 +42,7 @@ keys_of_interest = ['IMU_ATTI(1):pitch', 'IMU_ATTI(1):roll']#, 'IMU_ATTI(1):yaw'
 for k in keys_of_interest: #log_data[0].keys():
     print(k)
     plt.figure(figsize=(20, 10))
-    plt.suptitle(k, fontsize=14)
+    #plt.suptitle(k, fontsize=14)
     
     for i in range(9):
         try:
@@ -51,7 +51,7 @@ for k in keys_of_interest: #log_data[0].keys():
             x, y = np.array(x), np.array(y)
     
         
-            fit = np.polyfit(x,y,2)
+            fit = np.polyfit(x,y,1)
             fit_fn = np.poly1d(fit)
             #Calculate R^2 for 2D regression
             yhat = fit_fn(x)
@@ -60,50 +60,50 @@ for k in keys_of_interest: #log_data[0].keys():
             sstot = np.sum((y - ybar)**2)
             R2= ssreg/sstot
             
-            reg = RANSACRegressor(min_samples= math.floor(len(x) * 0.8), max_trials=200, random_state= 0).fit(x.reshape(-1, 1), y)
+            #reg = RANSACRegressor(min_samples= math.floor(len(x) * 0.8), max_trials=200, random_state= 0).fit(x.reshape(-1, 1), y)
         
             x_linspace = np.linspace(min(x), max(x), 30)
             plt.subplot(3, 3, i +1)
-            plt.gca().set_title('R-sq: %f'%R2)
+#            plt.gca().set_title('R-sq: %f'%R2)
             plt.scatter(x, y, label='raw')
-            plt.plot(x_linspace, fit_fn(x_linspace), label='linear regr')
-            plt.plot(x, reg.predict(x.reshape(-1, 1)), label='ransac')
+            plt.plot(x_linspace, fit_fn(x_linspace), label='linear regr R-sq: %f ' % R2 )
+            #plt.plot(x, reg.predict(x.reshape(-1, 1)), label='ransac')
             plt.legend()
             
         except:
             print('error', k)
 
-
-#Multiple linear regression.
-log_vals_of_interest = list(map(lambda d: { k: float(d[k]) for k in keys_of_interest}, log_data))
-
-df = pd.DataFrame(log_vals_of_interest, columns=keys_of_interest)
-df['height_MGL'] = pd.DataFrame(data)['height_MGL']
-print(df)
-
-# T = a + b * pitch(p) + c * roll(r) 
-models=[]
-
-
-for i in range(9):
-    
-    X = df
-    y = list(map(lambda t: float(t[i]), transforms_flattened))
-
-    model = LinearRegression().fit(X,y)
-    predictions = model.predict(X)
-    R2 = model.score(X, y)
-    coeffs = model.coef_
-    intercept = model.intercept_
-    
-    print('i ___________', i)
-    print('R2', R2)
-    print('coefs', coeffs )
-    print('intercept', intercept)
-    
-    models.append(model)
-    
-    
+#
+##Multiple linear regression.
+#log_vals_of_interest = list(map(lambda d: { k: float(d[k]) for k in keys_of_interest}, log_data))
+#
+#df = pd.DataFrame(log_vals_of_interest, columns=keys_of_interest)
+#df['height_MGL'] = pd.DataFrame(data)['height_MGL']
+#print(df)
+#
+## T = a + b * pitch(p) + c * roll(r) 
+#models=[]
+#
+#
+#for i in range(9):
+#    
+#    X = df
+#    y = list(map(lambda t: float(t[i]), transforms_flattened))
+#
+#    model = LinearRegression().fit(X,y)
+#    predictions = model.predict(X)
+#    R2 = model.score(X, y)
+#    coeffs = model.coef_
+#    intercept = model.intercept_
+#    
+#    print('i ___________', i)
+#    print('R2', R2)
+#    print('coefs', coeffs )
+#    print('intercept', intercept)
+#    
+#    models.append(model)
+#    
+#    
 #T = a + bp + cr + dy + ep^2 + fr^2  
 #
 #def add_2nd_degree(df) :
@@ -172,72 +172,80 @@ for i in range(9):
     x = list(map(lambda d: float(d['height_MGL']), data)) 
     y = list(map(lambda t: float(t[i]), transforms_flattened))
     x, y = np.array(x), np.array(y)
+    
 
     fit = np.polyfit(x,y,1)
     fit_fn = np.poly1d(fit)
-    reg = RANSACRegressor(min_samples= math.floor(len(x) * 0.7), max_trials=200, random_state= 0).fit(x.reshape(-1, 1), y)
+    #reg = RANSACRegressor(min_samples= math.floor(len(x) * 0.7), max_trials=200, random_state= 0).fit(x.reshape(-1, 1), y)
+
+    yhat = fit_fn(x)    
+    ybar = np.sum(y)/len(y)    
+    ssreg = np.sum((yhat-ybar)**2)
+    sstot = np.sum((y - ybar)**2)
+    R2 = ssreg/sstot
 
     plt.subplot(3, 3, i +1)
     plt.scatter(x, y, label='raw')
-    plt.plot(x, fit_fn(x), label='linear regr')
-    plt.plot(x, reg.predict(x.reshape(-1, 1)), label='ransac')
+    plt.plot(x, yhat, label='linear regr R-sq: %f ' % R2 )
+    #plt.plot(x, reg.predict(x.reshape(-1, 1)), label='ransac')
     plt.legend()
   
-
-
-def showTransform( im, im_to_transform, t, title, inverse = False, alpha = 0.8 ):
-    transformed_im = transform.warp(im_to_transform, transform.AffineTransform(t), output_shape=im.shape)
-    if(inverse) :
-        transformed_im = transform.warp(im_to_transform, transform.AffineTransform(t).inverse, output_shape=im.shape)
-    plt.figure(figsize=(10, 10))
-    plt.gca().set_title(title)
-    plt.imshow(im)
-    plt.imshow(transformed_im, alpha=alpha)
-    
-
-
-
-
-#Check result
-#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0698.JPG'
-Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0702.JPG' 
-#Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0792.JPG' 
-
-optical1 = imageio.imread(Image_path)
-thermal1 = imageio.imread( get_next_image(Image_path))
-
-#No transform:
-plt.figure(figsize=(10, 10))
-plt.gca().set_title('No transformation')
-plt.imshow(transform.resize(optical1, thermal1.shape))
-plt.imshow(thermal1, alpha=0.8)
-
-
-#just use average:
-t_avg = np.mean(transforms, axis=0)
-showTransform(optical1, thermal1, t_avg, 'avg')
-#showTransform(thermal1, optical1, t_avg, 'avg_inv', inverse=True, alpha = 0.2)
-lines = get_line_mask(optical1)
-thermal_t = transform.warp(thermal1, transform.AffineTransform(t_avg), output_shape=optical1.shape)
-
-plt.figure(figsize=(20, 10))
-plt.imshow(thermal_t)
-plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
-
-
-
-
-# use model multiple regression on 'IMU_ATTI(1):pitch', 'IMU_ATTI(1):roll'
-log_for_im = get_logdata(Image_path)
-X_im = df # np.asarray(list({ k: float(log_for_im[k]) for k in keys_of_interest}.values())).reshape(1, -1)
-t_params = np.asarray(list(map( lambda m: m.predict(X_im)[0] , models ))).reshape(3,3)
-#showTransform(optical1, thermal1, t_params, 'model')
-showTransform(thermal1, optical1, t_params, 'model', inverse=True, alpha = 0.2)
-thermal_t = transform.warp(thermal1, transform.AffineTransform(t_params), output_shape=optical1.shape)
-plt.figure(figsize=(20, 10))
-plt.imshow(thermal_t)
-plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
-
+#
+#
+#def showTransform( im, im_to_transform, t, title, inverse = False, alpha = 0.8 ):
+#    transformed_im = transform.warp(im_to_transform, transform.AffineTransform(t), output_shape=im.shape)
+#    if(inverse) :
+#        transformed_im = transform.warp(im_to_transform, transform.AffineTransform(t).inverse, output_shape=im.shape)
+#    plt.figure(figsize=(10, 10))
+#    plt.gca().set_title(title)
+#    plt.imshow(im)
+#    plt.imshow(transformed_im, alpha=alpha)
+#    
+#
+#
+#
+#
+##Check result
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0698.JPG'
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/100MEDIA/DJI_0702.JPG' 
+##Image_path = 'E:/SAU/Bilder Felles/Sorterte/Flyvning Storlidalen 21-22 08 2019/102MEDIA/DJI_0792.JPG' 
+#Image_path = './camera_calibration/test/dji_0691.jpg'
+#
+#optical1 = imageio.imread(Image_path)
+#thermal1 = imageio.imread( get_next_image(Image_path))
+#
+##No transform:
+#plt.figure(figsize=(10, 10))
+#plt.gca().set_title('No transformation')
+#plt.imshow(transform.resize(optical1, thermal1.shape))
+#plt.imshow(thermal1, alpha=0.8)
+#
+#
+##just use average:
+#t_avg = np.mean(transforms, axis=0)
+#showTransform(optical1, thermal1, t_avg, 'avg')
+##showTransform(thermal1, optical1, t_avg, 'avg_inv', inverse=True, alpha = 0.2)
+#lines = get_line_mask(optical1)
+#thermal_t = transform.warp(thermal1, transform.AffineTransform(t_avg), output_shape=optical1.shape)
+#
+#plt.figure(figsize=(20, 10))
+#plt.imshow(thermal_t)
+#plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.6)
+#
+#
+#
+#
+## use model multiple regression on 'IMU_ATTI(1):pitch', 'IMU_ATTI(1):roll'
+#log_for_im = get_logdata(Image_path)
+#X_im = df # np.asarray(list({ k: float(log_for_im[k]) for k in keys_of_interest}.values())).reshape(1, -1)
+#t_params = np.asarray(list(map( lambda m: m.predict(X_im)[0] , models ))).reshape(3,3)
+##showTransform(optical1, thermal1, t_params, 'model')
+#showTransform(thermal1, optical1, t_params, 'model', inverse=True, alpha = 0.2)
+#thermal_t = transform.warp(thermal1, transform.AffineTransform(t_params), output_shape=optical1.shape)
+#plt.figure(figsize=(20, 10))
+#plt.imshow(thermal_t)
+#plt.imshow(lines, cmap=cm.jet, interpolation='none', alpha = 0.8)
+#
 
 ## use 2nd degree model
 #log_for_im = get_logdata(Image_path)
