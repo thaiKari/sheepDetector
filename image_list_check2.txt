@@ -1,1 +1,0 @@
-./camera_calibration\DJI_0983.jpg,./camera_calibration\DJI_0991.jpg,./camera_calibration\DJI_0993.jpg,./camera_calibration\DJI_0995.jpg,./camera_calibration\DJI_0997.jpg,

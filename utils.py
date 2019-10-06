@@ -421,6 +421,15 @@ def undistort_pts(pts):
     return undistorted.reshape(undistorted.shape[0], undistorted.shape[2])
 
 
+def transform_pts(pts):
+    T = np.load('./Newest_data/the_transform.npy')
+    return transform.AffineTransform(T).inverse(pts)
+    
+
+
+
+
+
 #Image_path = './camera_calibration/DJI_0007.jpg'
 #img = cv2.imread(Image_path)
 #print(img.shape)
