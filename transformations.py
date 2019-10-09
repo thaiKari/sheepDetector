@@ -67,7 +67,7 @@ def transform_vis_im_to_IR_coordinate_system(im):
             try:
                 x2 = int(mapx[y,x])
                 y2 = int(mapy[y,x])
-                imNew[y2,x2] = im[int(y/SCALE), int(x/SCALE)]
+                imNew[y2,x2,:] = im[int(y/SCALE), int(x/SCALE),:]
             except:
                 print('e')
             
@@ -77,12 +77,14 @@ def transform_vis_im_to_IR_coordinate_system(im):
 
 
 
-print(mapx.shape)
 
 ####TRANSFORM IR_im TO VIS COORD SYSTEM
 im = cv2.imread('00_Alignment/camera_calibration/test/DJI_0692.JPG')
 imv = cv2.imread('00_Alignment/camera_calibration/test/DJI_0691.JPG')
-#
+
+plt.figure()
+plt.imshow(imv)
+
 #plt.figure()
 #plt.imshow(transform_IR_im_to_vis_coordinate_system(im))
 #plt.imshow(get_line_mask(imv))

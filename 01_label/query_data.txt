@@ -1,0 +1,14 @@
+query {
+  project(where:{id: "ck0go6h2khxnk08486qhifsyr"}) {
+    datasets{
+      id
+      name
+      rowCount
+    }
+    dataRows{
+      rowData
+      externalId
+      id
+    }
+  }
+}

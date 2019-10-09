@@ -89,13 +89,14 @@ for i in range(len(optical_pts)):
 
 
 mean_reproj_error, errors = compute_reproj_error(all_optical_pts, all_thermal_pts)
- 
+
+plt.rcParams.update({'font.size': 14}) 
 plt.figure(figsize=(8, 6))
 plt.scatter( np.arange(len(reproj_error_perIm)), reproj_error_perIm )
 plt.plot([0, len(optical_pts)], [mean_reproj_error, mean_reproj_error], label='mean reprojection error')
 plt.legend()
 plt.xlabel('Image number')
-plt.ylabel('Reprojection error')
+plt.ylabel('Reprojection error (pixels)')
 
 
 K = np.load('./camera_params_thermal/K.npy')
@@ -121,8 +122,8 @@ for p in all_optical_pts:
 plt.figure(figsize=(8, 6))
 plt.scatter(dist_to_origin, errors)
 plt.plot([np.min(dist_to_origin), np.max(dist_to_origin)], [mean_reproj_error, mean_reproj_error], label='mean reprojection error')
-plt.xlabel('Distance to reprojected IR principle point')
-plt.ylabel('Reprojection error')
+plt.xlabel('Distance to reprojected IR principle point (pixels)')
+plt.ylabel('Reprojection error (pixels)')
 plt.legend()
 
 
