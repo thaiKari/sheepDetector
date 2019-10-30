@@ -43,11 +43,27 @@ def transform_IR_pt_list_to_vis_coordinate_system(pts):
 
 def transform_vis_pt_list_to_IR_coordinate_system(pts):
     pts = transform.AffineTransform(T_v2IR)(pts)
+    for pt in pts:
+        if pt[0] < 0:
+            pt[0] = 0
+        if pt[0] > wIR:
+            pt[0] = wIR-1
+        if pt[1]< 0:
+            pt[1] = 0
+        if pt[1] > hIR:
+            pt[1] = hIR -1
+        
     newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(wIR, hIR),1,(wIR, hIR))
     mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(wIR,hIR),5) 
     pts = list(map( lambda p: [mapx[ int(p[1]), int(p[0])], mapy[int(p[1]), int(p[0])] ] ,pts))
     return np.asarray(pts)
 
+pts = np.array([[2408, 2637],[2484, 2824]], dtype=np.int)
+transform_vis_pt_list_to_IR_coordinate_system(pts)
+#pts = transform.AffineTransform(T_v2IR)(pts)
+#newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(wIR, hIR),1,(wIR, hIR))
+#mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(wIR,hIR),5)
+#print(mapx[pts[0]])
 
 def transform_vis_im_to_IR_coordinate_system(im):
     T = transform.AffineTransform(T_IR2v)
@@ -77,49 +93,72 @@ def transform_vis_im_to_IR_coordinate_system(im):
 
 
 
-
-####TRANSFORM IR_im TO VIS COORD SYSTEM
-im = cv2.imread('00_Alignment/camera_calibration/test/DJI_0692.JPG')
-imv = cv2.imread('00_Alignment/camera_calibration/test/DJI_0691.JPG')
-
-plt.figure()
-plt.imshow(imv)
-
-#plt.figure()
-#plt.imshow(transform_IR_im_to_vis_coordinate_system(im))
-#plt.imshow(get_line_mask(imv))
 #
-####TRANSFORM IR pts
-IR_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/thermal_key_pts_fakkel_DD.txt')[0]
-Vis_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/optical_key_pts_fakkel_DD.txt')[0]
-
-#tformed_pts = transform_IR_pt_list_to_vis_coordinate_system(IR_pts)
+#####TRANSFORM IR_im TO VIS COORD SYSTEM
+#im = cv2.imread('00_Alignment/camera_calibration/test/DJI_0692.JPG')
+#imv = cv2.imread('00_Alignment/camera_calibration/test/DJI_0691.JPG')
+#
+##plt.figure()
+##plt.imshow(imv)
+#
+##plt.figure()
+##plt.imshow(transform_IR_im_to_vis_coordinate_system(im))
+##plt.imshow(get_line_mask(imv))
+##
+#####TRANSFORM IR pts
+#IR_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/thermal_key_pts_fakkel_DD.txt')[0]
+#Vis_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/optical_key_pts_fakkel_DD.txt')[0]
+#
+##tformed_pts = transform_IR_pt_list_to_vis_coordinate_system(IR_pts)
+##plt.figure()
+##plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='infrared' )
+##plt.scatter(Vis_pts[:,0], Vis_pts[:,1],  marker='+', label='visual' )
+#
+####TRANSFORM VIS IM TO IR COORD SYSTEM:
+##plt.figure()
+##plt.imshow(im)
+## 
+##imv_t = transform_vis_im_to_IR_coordinate_system(imv)
+##print(np.max(imv_t))
+##imv_t = np.array(imv_t*255, np.uint8)
+##print(imv_t.shape)
+##lines = cv2.Canny(imv_t[:,:,0], 100, 200)
+##plt.figure()
+##plt.imshow(im)
+##plt.imshow(imv_t)
+##plt.imshow(np.ma.masked_where(lines < 50, lines))
+#
+##TRANSFORM VIS PT TO IR COORD SYSTEM
 #plt.figure()
-#plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='infrared' )
-#plt.scatter(Vis_pts[:,0], Vis_pts[:,1],  marker='+', label='visual' )
-
-###TRANSFORM VIS IM TO IR COORD SYSTEM:
+#print(Vis_pts)
+#plt.scatter(Vis_pts[:,0], Vis_pts[:,1],  marker='+', label='tformed' )
+#plt.scatter([0,4050 ], [0,3040])
+#plt.legend()
+#
+#tformed_pts = transform_vis_pt_list_to_IR_coordinate_system(Vis_pts)
+#
 #plt.figure()
-#plt.imshow(im)
-# 
-imv_t = transform_vis_im_to_IR_coordinate_system(imv)
-print(np.max(imv_t))
-imv_t = np.array(imv_t*255, np.uint8)
-print(imv_t.shape)
-lines = cv2.Canny(imv_t[:,:,0], 100, 200)
-plt.figure()
-plt.imshow(im)
-plt.imshow(imv_t)
-#plt.imshow(np.ma.masked_where(lines < 50, lines))
+#plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='tformed' )
+#plt.scatter(IR_pts[:,0], IR_pts[:,1],  marker='+', label='IR' )
+#plt.legend()
+#
+#
 
-#TRANSFORM VIS PT TO IR COORD SYSTEM
+#Vis_pts = np.asarray([[2304, 1496], [2415, 1604]], dtype=np.uint)
+#plt.figure()
+#plt.scatter(Vis_pts[:,0], Vis_pts[:,1],  marker='+', label='tformed' )
+#plt.scatter([0,4050 ], [0,3040])
+#plt.legend()
+#
+#
+#tformed_pts = transform_vis_pt_list_to_IR_coordinate_system(Vis_pts)
+#
+#plt.figure()
+#plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='tformed' )
+##plt.scatter(IR_pts[:,0], IR_pts[:,1],  marker='+', label='IR' )
+#plt.scatter([0,640 ], [0,480])
+#plt.legend()
 
-tformed_pts = transform_vis_pt_list_to_IR_coordinate_system(Vis_pts)
-
-plt.figure()
-plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='tformed' )
-plt.scatter(IR_pts[:,0], IR_pts[:,1],  marker='+', label='IR' )
-plt.legend()
 #
 #SCALE = 1/4 #Use scale to make entire image fit on screen at same time.
 #corners = np.asarray(select_coordinates_from_image(resize_by_scale(SCALE, transform_IR_im_to_vis_coordinate_system(im)))) / SCALE
