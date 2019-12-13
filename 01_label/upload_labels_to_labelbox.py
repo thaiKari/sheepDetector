@@ -9,6 +9,7 @@ Created on Thu Oct 10 13:48:16 2019
 import numpy as np
 import json
 from labelbox_utils import label_dict_to_json, get_row_id, create_label
+import os
 
 
 #project = {"id": "ck1km396zjhnr0794cjfjcmxp",
@@ -106,18 +107,28 @@ from labelbox_utils import label_dict_to_json, get_row_id, create_label
 #        "name": "g27",
 #        "id": "ck2bkgc3qysr00757jlutd7xj"
 #      }
-
+#
+#project ={
+#        "name": "g27_new_names",
+#        "id": "ck2bnov5fczuq0811lhoa9n1e"
+#      }
+#project ={
+#        "name": "Val_new",
+#        "id": "ck2d1ung26spu0748hs1brstl"
+#      }
+#project ={
+#        "name": "Train_new",
+#        "id": "ck2d149qad7zb09442elxsqa9"
+#      }
 project ={
-        "name": "g27_new_names",
-        "id": "ck2bnov5fczuq0811lhoa9n1e"
+        "name": "All_labeled",
+        "id": "ck2egxkw6xf7z0944mg6e7nd0"
       }
-
 #im_label_map = np.load('im_label_map_new_names.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('im_label_map_THERMAL.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('G:/SAU/Fra Jens/Datasett1 - Copy - Copy/has_label_grouped/Val_g5_9/labels.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('G:/SAU/Fra Jens/Datasett1 - Copy - Copy/has_label_grouped/Train/labels.npy',  allow_pickle=True).item() 
-im_label_map = np.load('G:/SAU/Should_label/g27/00_labels_g27.npy',  allow_pickle=True).item() 
-
+im_label_map = np.load('G:/SAU/Labeled/00_annotations/00_all_labels.npy',  allow_pickle=True).item() 
 
 json_data = label_dict_to_json(im_label_map)
 json_data_map = {}
@@ -125,7 +136,7 @@ json_data_map = {}
 for d in json_data:
     json_data_map[d['External ID']] = json.dumps(d['Label'])
     
-    
+#images_of_interest = os.listdir('G:/SAU/Labeled/Train')    
 
 failed_label_uploads = []
 ## upload labels to labelbox:

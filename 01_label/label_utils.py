@@ -256,7 +256,35 @@ def label_dict_to_json(label_dict):
     return data
 
 
-def show_im_with_boxes_not_saved(im, labels):
+def show_im_with_pred_and_gt_boxes(im, gt, pred):
+    fig,ax = plt.subplots(1, figsize=(30, 30))
+    ax.imshow(im)    
+    
+    for l in gt:
+        geom = l['geometry']
+        
+        xmin, ymin = geom[0]
+        xmax, ymax = geom[1]
+        w = xmax - xmin
+        h = ymax - ymin
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=3,edgecolor='#92d050',facecolor='none')
+        ax.add_patch(rect)
+        
+    for l in pred:
+        geom = l['geometry']
+        
+        xmin, ymin = geom[0]
+        xmax, ymax = geom[1]
+        w = xmax - xmin
+        h = ymax - ymin
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=1.5, linestyle = '--' , edgecolor='r',facecolor='none')
+        ax.add_patch(rect)
+        plt.text(xmin,ymin, round(l['confidence'], 3), color='red', fontsize=18 )
+        
+    plt.draw()
+    plt.show()
+
+def show_im_with_boxes_not_saved(im, labels, save_to_filename = False):
     fig,ax = plt.subplots(1, figsize=(20, 20))
     ax.imshow(im)    
     
@@ -267,8 +295,11 @@ def show_im_with_boxes_not_saved(im, labels):
         xmax, ymax = geom[1]
         w = xmax - xmin
         h = ymax - ymin
-        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=1,edgecolor='r',facecolor='none')
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=4,edgecolor='#92d050',facecolor='none')      
         ax.add_patch(rect)
+        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+    if save_to_filename:
+        plt.savefig(save_to_filename)
     plt.draw()
     plt.show()
 
@@ -280,6 +311,7 @@ def show_im_with_boxes(im_name, im_dir, label_map):
 
 
 def map_to_coco(data, w0=0, h0=0):
+    print('COCOLOCO')
     categories =[{
             'supercategory':'none',
             'name':'sheep',
@@ -292,7 +324,7 @@ def map_to_coco(data, w0=0, h0=0):
     label_n = -1
     w = w0
     h = h0
-        
+
     
     for im_n in range(len(data.keys())):
         
@@ -301,51 +333,62 @@ def map_to_coco(data, w0=0, h0=0):
         d = data[k]
         
         if w0 < 1 or h0 < 1:
-            if 'ROT30' in k:
-                w = 2553
-                h = 1900
-            elif 'ROT60' in k:
-                w = 2458
-                h = 1842
-            elif 'CROPPED' in k:
-                split_k = k.split(']')
-                w = int(split_k[2][1:])
-                h = int(split_k[3][1:])             
-            
-            elif ']' in k:
-                w = h = int(k.split(']')[2][1:])
-            else:
-                w = 4056
-                h = 3040            
-        
-        if not d['labels'] == 'Skip' and d['labels'] :
-            images.append({'file_name':k,
-                           'height': h,
-                           'width':w,
-                           'id': im_n })
-            for i in range(len(d['labels'])):
-                label_n = label_n +1
-                geom = d['labels'][i]['geometry']
-                xmin, ymin = geom[0]
-                xmax, ymax = geom[1]
-                xmin = int(xmin)
-                ymin = int(ymin)
-                xmax = int(xmax)
-                ymax = int(ymax)
-                w = xmax-xmin
-                h = ymax-ymin
+            if '[1024][1024]' in k:
+                w = h = 1024
+            elif '_Rot45_[2128]' in k:
+                w = h = 2128
+            elif '[3040][3040]' in k:
+                w = h = 3040
                 
-                if w >= 1 and h >=1:
-                    annotations.append({
-                            'id': label_n,
-                            'bbox': [xmin, ymin, w, h],
-                            'image_id':im_n,
-                            'segmentation':[],
-                            'ignore':0,
-                            'area':w*h,                
-                            'iscrowd':0,
-                            'category_id':0
-                            })
+            elif 'CROPPED_[2128]' in k:
+                w = h = 2128
+            elif True:
+                print(k)
+#            if 'ROT30' in k:
+#                w = 2553
+#                h = 1900
+#            elif 'ROT60' in k:
+#                w = 2458
+#                h = 1842
+#            elif 'CROPPED' in k:
+#                split_k = k.split(']')
+#                w = int(split_k[2][1:])
+#                h = int(split_k[3][1:])             
+#            
+#            elif ']' in k:
+#                w = h = int(k.split(']')[2][1:])
+#            else:
+#                w = 4056
+#                h = 3040            
+        
+#        if not d['labels'] == 'Skip' and d['labels'] :
+        images.append({'file_name':k,
+                       'height': h,
+                       'width':w,
+                       'id': im_n })
+        for i in range(len(d['labels'])):
+            label_n = label_n +1
+            geom = d['labels'][i]['geometry']
+            xmin, ymin = geom[0]
+            xmax, ymax = geom[1]
+            xmin = int(xmin)
+            ymin = int(ymin)
+            xmax = int(xmax)
+            ymax = int(ymax)
+            w = xmax-xmin
+            h = ymax-ymin
+            
+            if w >= 1 and h >=1:
+                annotations.append({
+                        'id': label_n,
+                        'bbox': [xmin, ymin, w, h],
+                        'image_id':im_n,
+                        'segmentation':[],
+                        'ignore':0,
+                        'area':w*h,                
+                        'iscrowd':0,
+                        'category_id':0
+                        })
         
     
           
@@ -453,8 +496,54 @@ def rotate_im(im, M, h, w):
     return cv2.warpAffine(im, M, (w, h))
 
 
-def rotate_crop(im, deg, minxy, w_new, h_new, labels):
+def rotate__centercrop(im, deg, w_new, h_new, labels):
+    print( w_new, h_new)
+    (h, w) = im.shape[:2]
+    (cX, cY) = (w // 2, h // 2)
 
+
+    M = cv2.getRotationMatrix2D((cX, cY), deg, 1.0)
+    im = rotate_im(im, M, h, w)
+    im = im[int(cY - h_new/2) :int(cY + h_new/2), int(cX - w_new/2) :int(cX + w_new/2) ]
+    
+    new_labels = []
+    
+    for l in labels['labels']:
+        geom = l['geometry'].copy()
+        geom = rotate_box(geom, M)
+        geom =list(map( lambda p: [p[0] - int(cX - w_new/2)  , p[1] - int(cY - h_new/2)  ] ,geom))
+        
+        xmin, ymin = geom[0]
+        xmax, ymax = geom[1]
+        
+        #check if label within new crop
+        if not (xmin > w_new or ymin > h_new or xmax < 0 or ymax < 0):
+
+            if xmin < 0:
+                xmin = 0
+            if ymin < 0:
+                ymin = 0
+            if xmax > w_new:
+                xmax = w_new
+            if ymax > h_new:
+                ymax = h_new
+                
+            w1 = xmax-xmin
+            h1 = ymax-ymin 
+            
+            #Only save if lbl w and h greater than threshold.
+            T = 20
+            if w1 > T and h1 > T:        
+                new_labels.append({
+                'sheep_color': l['sheep_color'],
+                'geometry': geom
+                })
+            
+#    show_im_with_boxes_not_saved(im, new_labels, save_to_filename = False)
+                    
+    return im , {'labels':new_labels}
+
+def rotate_crop(im, deg, minxy, w_new, h_new, labels):
     
     (h, w) = im.shape[:2]
     (cX, cY) = (w // 2, h // 2)
@@ -463,6 +552,8 @@ def rotate_crop(im, deg, minxy, w_new, h_new, labels):
     M = cv2.getRotationMatrix2D((cX, cY), deg, 1.0)
     im = rotate_im(im, M, h, w)
     im = im[minxy[1]:minxy[1]+h_new,minxy[0]:minxy[0]+w_new ]
+    plt.figure()
+    plt.imshow(im)
     
     new_labels = []
     
@@ -553,6 +644,10 @@ def rotate_crop_60(im_path, labels):
 
 
 #path = 'G:/SAU/Labeled/00_Annotations'
+#labels = pd.read_csv(os.path.join(path, 'all_labels-2019-10-31.csv'))
+#label_map = csv_to_label_map(labels)
+#np.save(os.path.join(path, '00_all_labels-2019-10-31.npy'), label_map)
+
 ##dst_path = 'G:/SAU/Labeled/All_labeled_IR'
 #new_label_map = {}
 #
@@ -575,9 +670,9 @@ def rotate_crop_60(im_path, labels):
 #available_images = os.listdir(path)
 #
 #
-    
-#labels = np.load('G:/SAU/Labeled/00_annotations/00_all_labels.npy', allow_pickle = True).item()
-#path = 'G:/SAU/Labeled/All_labeled'
+#    
+#labels = np.load('G:/SAU/Labeled/00_annotations/00_all_labels-2019-10-31.npy', allow_pickle = True).item()
+#path = 'G:/SAU/Labeled/Val'
 ###src = 'G:/SAU/Labeled/All_labeled'
 ###dst = 'G:/SAU/Labeled/All_labeled/IR'
 #img_list = os.listdir(path)
@@ -589,14 +684,14 @@ def rotate_crop_60(im_path, labels):
 #            train_labels[file] = labels[file]
 #        except: print(file)
 #    
-np.save( 'G:/SAU/Labeled/00_annotations/00_all_labels_visual.npy', train_labels)
+#np.save( 'G:/SAU/Labeled/00_annotations/00_val_labels.npy', train_labels)
 
 
 #path = 'G:/SAU/Labeled/Train/'
 #no_label = []
-#label_map = np.load(os.path.join(path, 'labels_REVIEWED.npy'), allow_pickle = True).item()
+#label_map = np.load(os.path.join(path, '00_labels.npy'), allow_pickle = True).item()
 ##im_name = 'aug19_103MEDIA_DJI_0043.JPG'
-#for im_name in os.listdir(path)[460:]:
+#for im_name in ['sep19_101MEDIA_DJI_0218.JPG']:#os.listdir(path)[460:]:
 #    if '.JPG' in im_name:       
 #        im_path = os.path.join( path, im_name)
 #        im = cv2.imread(im_path)
@@ -606,15 +701,8 @@ np.save( 'G:/SAU/Labeled/00_annotations/00_all_labels_visual.npy', train_labels)
 #            show_im_with_boxes_not_saved(im, im_label['labels'])
 #        else:
 #            print('NO LABEL!!!!!!!!!!')
-#            print('NO LABEL!!!!!!!!!!')
-#            print('NO LABEL!!!!!!!!!!')
-#            print('NO LABEL!!!!!!!!!!')
-#            print(im_name)
-#            print('NO LABEL!!!!!!!!!!')
-#            print('NO LABEL!!!!!!!!!!')
-#            print('NO LABEL!!!!!!!!!!')
 #            no_label.append(im_name)
-#
+##
 #wrong = ['aug19_103MEDIA_DJI_0359.JPG','aug19_103MEDIA_DJI_0473.JPG','aug19_103MEDIA_DJI_0475.JPG','aug19_103MEDIA_DJI_0479.JPG']
 #for w in wrong:
 #    print(w in label_map.keys())

@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 from skimage import transform
 import matplotlib.pyplot as plt
-from utils import resize_by_scale, get_line_mask, read_pts, select_coordinates_from_image
+#from utils import resize_by_scale, get_line_mask, read_pts, select_coordinates_from_image
 
 K = np.load("./parameters/camera_matrix_K.npy")
 dist = np.load("./parameters/camera_dist_coeffs.npy")
@@ -58,8 +58,8 @@ def transform_vis_pt_list_to_IR_coordinate_system(pts):
     pts = list(map( lambda p: [mapx[ int(p[1]), int(p[0])], mapy[int(p[1]), int(p[0])] ] ,pts))
     return np.asarray(pts)
 
-pts = np.array([[2408, 2637],[2484, 2824]], dtype=np.int)
-transform_vis_pt_list_to_IR_coordinate_system(pts)
+#pts = np.array([[2408, 2637],[2484, 2824]], dtype=np.int)
+#transform_vis_pt_list_to_IR_coordinate_system(pts)
 #pts = transform.AffineTransform(T_v2IR)(pts)
 #newcameramtx, roi=cv2.getOptimalNewCameraMatrix(K,dist,(wIR, hIR),1,(wIR, hIR))
 #mapx,mapy = cv2.initUndistortRectifyMap(K,dist,None,newcameramtx,(wIR,hIR),5)
