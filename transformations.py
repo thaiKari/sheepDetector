@@ -9,7 +9,7 @@ import numpy as np
 import cv2
 from skimage import transform
 import matplotlib.pyplot as plt
-#from utils import resize_by_scale, get_line_mask, read_pts, select_coordinates_from_image
+from utils import resize_by_scale, get_line_mask, read_pts, select_coordinates_from_image
 
 K = np.load("./parameters/camera_matrix_K.npy")
 dist = np.load("./parameters/camera_dist_coeffs.npy")
@@ -85,16 +85,12 @@ def transform_vis_im_to_IR_coordinate_system(im):
                 y2 = int(mapy[y,x])
                 imNew[y2,x2,:] = im[int(y/SCALE), int(x/SCALE),:]
             except:
-                print('e')
+                no_match=True#just do nothing
             
     return imNew
 
-    
-
-
-
 #
-#####TRANSFORM IR_im TO VIS COORD SYSTEM
+####TRANSFORM IR_im TO VIS COORD SYSTEM
 #im = cv2.imread('00_Alignment/camera_calibration/test/DJI_0692.JPG')
 #imv = cv2.imread('00_Alignment/camera_calibration/test/DJI_0691.JPG')
 #
@@ -107,27 +103,27 @@ def transform_vis_im_to_IR_coordinate_system(im):
 ##
 #####TRANSFORM IR pts
 #IR_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/thermal_key_pts_fakkel_DD.txt')[0]
-#Vis_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/optical_key_pts_fakkel_DD.txt')[0]
+Vis_pts = read_pts('./00_Alignment/camera_calibration/Fakkel_DD/optical_key_pts_fakkel_DD.txt')[0]
 #
 ##tformed_pts = transform_IR_pt_list_to_vis_coordinate_system(IR_pts)
 ##plt.figure()
 ##plt.scatter(tformed_pts[:,0], tformed_pts[:,1],  marker='+', label='infrared' )
 ##plt.scatter(Vis_pts[:,0], Vis_pts[:,1],  marker='+', label='visual' )
 #
-####TRANSFORM VIS IM TO IR COORD SYSTEM:
-##plt.figure()
-##plt.imshow(im)
-## 
-##imv_t = transform_vis_im_to_IR_coordinate_system(imv)
-##print(np.max(imv_t))
-##imv_t = np.array(imv_t*255, np.uint8)
-##print(imv_t.shape)
-##lines = cv2.Canny(imv_t[:,:,0], 100, 200)
-##plt.figure()
-##plt.imshow(im)
-##plt.imshow(imv_t)
-##plt.imshow(np.ma.masked_where(lines < 50, lines))
-#
+##TRANSFORM VIS IM TO IR COORD SYSTEM:
+#plt.figure()
+#plt.imshow(im)
+# 
+#imv_t = transform_vis_im_to_IR_coordinate_system(imv)
+#print(np.max(imv_t))
+#imv_t = np.array(imv_t*255, np.uint8)
+#print(imv_t.shape)
+#lines = cv2.Canny(imv_t[:,:,0], 100, 200)
+#plt.figure()
+#plt.imshow(im)
+#plt.imshow(imv_t)
+#plt.imshow(np.ma.masked_where(lines < 50, lines))
+
 ##TRANSFORM VIS PT TO IR COORD SYSTEM
 #plt.figure()
 #print(Vis_pts)

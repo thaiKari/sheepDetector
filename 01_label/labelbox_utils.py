@@ -32,6 +32,7 @@ def generate_query_for_row_id( project_id, external_id):
 def get_row_id( project_id, external_id):
     query = generate_query_for_row_id(project_id, external_id)
     data = client.execute(query)
+    print('data', data)
     return data['data']['projects'][0]['dataRows'][0]['id']
 
 
@@ -124,8 +125,13 @@ def label_dict_to_json(label_dict):
     
     def get_label(label):
         if('labels' in label):
-            return {"Sheep": list(map( lambda l: {"sheep_color": l['sheep_color'],
-                              "geometry":get_geometry(l['geometry'])}  , label['labels']))}
+            if 'sheep_color' in label['labels'][0].keys():
+                return {"Sheep": list(map( lambda l: {"sheep_color": l['sheep_color'],
+                                  "geometry":get_geometry(l['geometry'])}  , label['labels']))}
+            else:
+                return {"Sheep": list(map( lambda l: {"sheep_color": 'White',
+                                  "geometry":get_geometry(l['geometry'])}  , label['labels']))}
+            
         
         
         else: return 'Skip'

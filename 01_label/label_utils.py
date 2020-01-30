@@ -83,6 +83,24 @@ def iou(geom1, geom2):
     return A_inter / A_union
     
 
+# what portion of bbox is inside box
+def intersection_degree(bbox, box):
+    xmin1, ymin1 = bbox[0]
+    xmax1, ymax1 = bbox[1]
+    xmin2, ymin2 = box[0]
+    xmax2, ymax2 = box[1]
+    
+    A1 = (xmax1 - xmin1)*(ymax1-ymin1)
+    A2 = (xmax2 - xmin2)*(ymax2-ymin2)
+    
+    dx_inter = min(xmax1,xmax2) - max(xmin1, xmin2)
+    dy_inter = min(ymax1, ymax2) - max(ymin1, ymin2)
+    A_inter=0
+    if (dx_inter > 0) and (dy_inter > 0 ):
+        A_inter = dx_inter*dy_inter
+        
+    return A_inter / A1
+
 
 #Look for boxes with IOU > 0.55. replace with mean
 def remove_duplicate_labels(labels):
@@ -140,8 +158,11 @@ def csv_to_label_map(labels):
                 ymax = np.max(ys)
 
                 
-                label_obj = {'sheep_color':b['sheep_color'],
-                             'geometry': [ [xmin, ymin], [xmax, ymax] ]}
+                if 'sheep_color' in b.keys():
+                    label_obj = {'sheep_color':b['sheep_color'],
+                                 'geometry': [ [xmin, ymin], [xmax, ymax] ]}
+                else:
+                    label_obj = {'geometry': [ [xmin, ymin], [xmax, ymax] ]}
 
                 if( 'labels' not in im_obj):
                     im_obj['labels'] = [label_obj]
@@ -256,7 +277,7 @@ def label_dict_to_json(label_dict):
     return data
 
 
-def show_im_with_pred_and_gt_boxes(im, gt, pred):
+def show_im_with_pred_and_gt_boxes(im, gt, pred, im_name = None):
     fig,ax = plt.subplots(1, figsize=(30, 30))
     ax.imshow(im)    
     
@@ -280,13 +301,17 @@ def show_im_with_pred_and_gt_boxes(im, gt, pred):
         rect = patches.Rectangle((xmin,ymin),w,h,linewidth=1.5, linestyle = '--' , edgecolor='r',facecolor='none')
         ax.add_patch(rect)
         plt.text(xmin,ymin, round(l['confidence'], 3), color='red', fontsize=18 )
-        
+    
+    plt.axis('off')    
     plt.draw()
-    plt.show()
+    if im_name:
+        plt.savefig( 'G:/SAU/Labeled/Train/pred_201912/' + im_name,bbox_inches='tight', transparent="True", pad_inches=0)
+    #plt.show()
 
-def show_im_with_boxes_not_saved(im, labels, save_to_filename = False):
+
+def show_im_with_boxes_not_saved(im, labels, save_to_filename = False, cmap=None, bbox_edge_color='#92d050'):
     fig,ax = plt.subplots(1, figsize=(20, 20))
-    ax.imshow(im)    
+    ax.imshow(im, cmap=cmap)    
     
     for l in labels:
         geom = l['geometry']
@@ -295,14 +320,191 @@ def show_im_with_boxes_not_saved(im, labels, save_to_filename = False):
         xmax, ymax = geom[1]
         w = xmax - xmin
         h = ymax - ymin
-        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=4,edgecolor='#92d050',facecolor='none')      
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor=bbox_edge_color,facecolor='none')      
         ax.add_patch(rect)
-        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+#        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+    if save_to_filename:
+        plt.savefig(save_to_filename)
+    plt.draw()
+    plt.show()
+    
+
+
+def get_xmin_ymin_xmax_ymax_w_h_from_label(label):
+#    print('l', label)
+    geom = label['geometry']
+        
+    xmin, ymin = geom[0]
+    xmax, ymax = geom[1]
+    w = xmax - xmin
+    h = ymax - ymin
+    
+    return [xmin, ymin, xmax, ymax, w, h]
+        
+
+def get_labels_from_crop(xmin, ymin , w_new, h_new, labels):
+    
+    new_labels = []
+    for l in labels:
+        geom_xmin, geom_ymin, geom_xmax, geom_ymax, geom_w, geom_h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
+        
+        geom_xmin_new = geom_xmin - xmin
+        geom_xmax_new = geom_xmax - xmin
+        geom_ymin_new = geom_ymin - ymin
+        geom_ymax_new = geom_ymax - ymin
+        
+
+        if geom_xmin_new < 0:
+            geom_xmin_new = 0
+        if geom_ymin_new < 0:
+            geom_ymin_new = 0
+        if geom_xmax_new > w_new:
+            geom_xmax_new = w_new -1
+        if geom_ymax_new > h_new:
+            geom_ymax_new = h_new -1
+                   
+    # Only keep box if w or h greater than threshold
+        T=5
+        if geom_xmax_new - geom_xmin_new > T and geom_ymax_new - geom_ymin_new > T:                
+            new_label = l.copy()
+            new_label['geometry'] = [[geom_xmin_new, geom_ymin_new],[geom_xmax_new, geom_ymax_new]]
+            new_labels.append(new_label)
+            
+    return new_labels
+
+
+def read_grid_labels(file_path, grid_shape):
+    
+    f = open(file_path, "r")
+    result = {}
+    for line in f:
+        line_split = line.split()
+        im_name = line_split[0]
+        grid_vals = np.array(line_split[1:]).reshape(-1,grid_shape[1]).astype(int)
+        result[im_name] = grid_vals
+
+    return result
+
+
+def write_grid_labels_to_txt(path, label_map):
+    with open(path, "w") as file:
+        file.write('')
+        
+    for key in label_map.keys():
+        grid = label_map[key]
+        print(grid)
+        print(grid.flatten())
+        with open(path, "a") as file:
+            file.write(key + ' ' + str(grid.flatten())[1:-1] + '\n' )
+            
+
+ 
+
+def label_center_in_grid_cell(grid_xmin, grid_ymin, grid_xmax, grid_ymax, labels):
+    for l in labels:
+        xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
+        
+        x_center = (xmin + xmax)/2
+        y_center = (ymin + ymax)/2
+
+
+        if (x_center > grid_xmin and x_center < grid_xmax) and (y_center > grid_ymin and y_center < grid_ymax):
+            return True
+            
+    return False
+
+
+def grid_cell_has_label_corner(grid_xmin, grid_ymin, grid_xmax, grid_ymax, labels):
+
+    for l in labels:
+        xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
+        
+        #grid has label if any of the box corners are inside the grid
+        corners = [ [xmin, ymin],[xmin, ymax],[xmax, ymin],[xmax, ymax]]
+
+        for c in corners:
+            x=c[0]
+            y=c[1]
+
+            if (x > grid_xmin and x < grid_xmax) and (y > grid_ymin and y < grid_ymax):
+                return True
+            
+    return False
+
+def grid_cell_has_label(grid_xmin, grid_ymin, grid_xmax, grid_ymax, labels):
+
+    grid_geom = [ [grid_xmin, grid_ymin ], [grid_xmax, grid_ymax ] ]
+    intersection_degree
+    
+    for l in labels:
+        label_geom = l['geometry']
+        
+        if intersection_degree(label_geom, grid_geom) > 0.1:
+            return True
+        
+    return False
+
+
+def show_im_with_bbox_and_grid(im, labels,grid_shape=(6,8), save_to_filename = False, cmap=None, bbox_edge_color='#92d050'):
+    fig,ax = plt.subplots(1, figsize=(20, 20))
+    ax.imshow(im, cmap=cmap)    
+    
+
+#        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+    grid_h = math.floor(im.shape[0]/ grid_shape[0])
+    grid_w = math.floor(im.shape[1]/ grid_shape[1])
+    
+    for x in range(grid_shape[1]):
+        for y in range(grid_shape[0]):
+            if grid_cell_has_label(x*grid_w, y*grid_h, (x+1)*grid_w,(y+1)*grid_h, labels ):
+                rect = patches.Rectangle((x*grid_w,y*grid_h),grid_w,grid_h,linewidth=2,edgecolor='green',facecolor='green', alpha=0.1)      
+            else:
+                rect = patches.Rectangle((x*grid_w,y*grid_h),grid_w,grid_h,linewidth=2,edgecolor='white',facecolor='none')      
+            ax.add_patch(rect)
+    
+    for l in labels:
+        xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor=bbox_edge_color,facecolor='none')      
+        ax.add_patch(rect)
+    
     if save_to_filename:
         plt.savefig(save_to_filename)
     plt.draw()
     plt.show()
 
+#def show_im_with_bbox_and_grid(im, labels, grid_shape=(6,8), cmap=None, bbox_edge_color='#92d050'
+#    fig,ax = plt.subplots(1, figsize=(20, 20))
+#    ax.imshow(im, cmap=cmap)    
+#    
+#    for l in labels:
+#        geom = l['geometry']
+#        
+#        xmin, ymin = geom[0]
+#        xmax, ymax = geom[1]
+#        w = xmax - xmin
+#        h = ymax - ymin
+#        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor=bbox_edge_color,facecolor='none')      
+#        ax.add_patch(rect)
+##        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+#    grid_h = math.floor(grid_shape[0])
+#    grid_w = math.floor(grid_shape[1])
+#    
+#    for x in range(grid_shape[1]):
+#        for y in range(grid_shape[0]):
+#            rect = patches.Rectangle((x,y),grid_w,grid_h,linewidth=2,edgecolor='green',facecolor='none')      
+#            ax.add_patch(rect)
+#    plt.draw()
+#    plt.show()    
+                               
+
+   
+                               
+                               
+#
+#im_name = 'oct19_103MEDIA_DJI_0584.JPG'
+#im = cv2.imread('G:/SAU/Labeled/Val/' + im_name)
+#labels = np.load('G:/SAU/Labeled/Val/00_labels.npy', allow_pickle=True).item()
+#show_im_with_boxes_not_saved(im, labels[im_name]['labels'])
 
 def show_im_with_boxes(im_name, im_dir, label_map):
     im = cv2.imread(im_dir + im_name )
@@ -310,7 +512,37 @@ def show_im_with_boxes(im_name, im_dir, label_map):
     show_im_with_boxes_not_saved(im, labels)
 
 
-def map_to_coco(data, w0=0, h0=0):
+def map_to_yolo(data, w0, h0):
+    data_str = ''
+    
+    for im_name in data.keys():
+        im_data = data[im_name]
+        data_str = data_str + im_name + ' '
+        
+        for label in im_data['labels']:            
+            xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(label)
+            data_str = data_str + '{} {} {} {} 0 '.format(xmin, ymin, xmax, ymax) #0 is class id
+        
+        data_str = data_str + '\n'
+    return data_str
+
+
+def map_to_coco_simple(data, w0=0, h0=0):
+    result = {}
+    
+    for key in data.keys():
+        im_labels = data[key]['labels']
+        im_labels_new_format = []
+        
+        for label in im_labels:
+            xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(label)
+            im_labels_new_format.append([int(xmin), int(ymin), int(w), int(h)])
+        result[key] =  im_labels_new_format
+    return result
+        
+    
+
+def map_to_coco(data, w0=0, h0=0, grid_type=False):
     print('COCOLOCO')
     categories =[{
             'supercategory':'none',
@@ -334,61 +566,56 @@ def map_to_coco(data, w0=0, h0=0):
         
         if w0 < 1 or h0 < 1:
             if '[1024][1024]' in k:
-                w = h = 1024
+                w0 = h0 = 1024
             elif '_Rot45_[2128]' in k:
-                w = h = 2128
+                w0 = h0 = 2128
             elif '[3040][3040]' in k:
-                w = h = 3040
+                w0 = h0 = 3040
                 
             elif 'CROPPED_[2128]' in k:
-                w = h = 2128
+                w0 = h0 = 2128
             elif True:
                 print(k)
-#            if 'ROT30' in k:
-#                w = 2553
-#                h = 1900
-#            elif 'ROT60' in k:
-#                w = 2458
-#                h = 1842
-#            elif 'CROPPED' in k:
-#                split_k = k.split(']')
-#                w = int(split_k[2][1:])
-#                h = int(split_k[3][1:])             
-#            
-#            elif ']' in k:
-#                w = h = int(k.split(']')[2][1:])
-#            else:
-#                w = 4056
-#                h = 3040            
-        
-#        if not d['labels'] == 'Skip' and d['labels'] :
+
         images.append({'file_name':k,
-                       'height': h,
-                       'width':w,
+                       'height': h0,
+                       'width':w0,
                        'id': im_n })
-        for i in range(len(d['labels'])):
-            label_n = label_n +1
-            geom = d['labels'][i]['geometry']
-            xmin, ymin = geom[0]
-            xmax, ymax = geom[1]
-            xmin = int(xmin)
-            ymin = int(ymin)
-            xmax = int(xmax)
-            ymax = int(ymax)
-            w = xmax-xmin
-            h = ymax-ymin
+        
+        if not grid_type:    
+            for i in range(len(d['labels'])):
+                label_n = label_n +1
+                geom = d['labels'][i]['geometry']
+                xmin, ymin = geom[0]
+                xmax, ymax = geom[1]
+                xmin = int(xmin)
+                ymin = int(ymin)
+                xmax = int(xmax)
+                ymax = int(ymax)
+                w = xmax-xmin
+                h = ymax-ymin
+                
+                if w >= 1 and h >=1:
+                    annotations.append({
+                            'id': label_n,
+                            'im_name': k,
+                            'bbox': [xmin, ymin, w, h],
+                            'image_id':im_n,
+                            'segmentation':[],
+                            'ignore':0,
+                            'area':w*h,                
+                            'iscrowd':0,
+                            'category_id':0
+                            })
             
-            if w >= 1 and h >=1:
-                annotations.append({
-                        'id': label_n,
-                        'bbox': [xmin, ymin, w, h],
-                        'image_id':im_n,
-                        'segmentation':[],
-                        'ignore':0,
-                        'area':w*h,                
-                        'iscrowd':0,
-                        'category_id':0
-                        })
+        else:
+            annotations.append({
+                        'id': im_n,
+                        'image_id':label_n,
+                        'category_id':0,
+                        'grid_mask': d
+                    })
+            
         
     
           
@@ -621,8 +848,8 @@ def get_crop(im, labels, minx, miny, w_new, h_new):
             w1 = xmax-xmin
             h1 = ymax-ymin 
             
-            #Only save if lbl w and h greater than threshold.
-            T = 20
+            #Only label if w and h of box greater than threshold.
+            T = 5
             if w1 > T and h1 > T:
                 new_labels.append({
                 'sheep_color': l['sheep_color'],
@@ -643,10 +870,10 @@ def rotate_crop_60(im_path, labels):
     
 
 
-#path = 'G:/SAU/Labeled/00_Annotations'
-#labels = pd.read_csv(os.path.join(path, 'all_labels-2019-10-31.csv'))
-#label_map = csv_to_label_map(labels)
-#np.save(os.path.join(path, '00_all_labels-2019-10-31.npy'), label_map)
+path = 'G:/SAU/Labeled/00_Annotations'
+labels = pd.read_csv(os.path.join(path, 'grid_boxes_3_4_20200123.csv'))
+label_map = csv_to_label_map(labels)
+np.save(os.path.join(path, '00_grid_boxes_3_4_20200123.npy'), label_map)
 
 ##dst_path = 'G:/SAU/Labeled/All_labeled_IR'
 #new_label_map = {}

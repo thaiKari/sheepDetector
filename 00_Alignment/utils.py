@@ -68,6 +68,7 @@ def select_coordinates_from_image(image_array):
     return coords
 
 
+
 def resize_by_scale(SCALE, img):
     return img_as_ubyte(transform.resize(img, (img.shape[0]*SCALE, img.shape[1]*SCALE),
                        anti_aliasing=True))
@@ -84,7 +85,7 @@ def get_log_data_for_time(timestamp):
     time_split = [int(n) for n in time_split]
     im_datetime = datetime(*time_split)
     
-    log_directory_path = './Loggdata/Utpakket data'  
+    log_directory_path = 'G:/SAU/Bilder Felles/Loggdata/Utpakket data'  
     log_directory = os.fsencode(log_directory_path)
     log_filename = None
     log_start_datetime = datetime.fromtimestamp(0) #start of timestamp time (1970)
@@ -220,10 +221,13 @@ def get_metadata(filename):
             'elevation_terrain': elevation,
             'heightMSL': height_MSL,
             'height_MGL': height_MGL,
+            'height_barometric_smooth': log_data['IMU_ATTI(0):barometer:Smooth'], 
             'IMU_ATTI(0):gyro:X': log_data['IMU_ATTI(0):gyro:X'],
             'IMU_ATTI(0):gyro:Y': log_data['IMU_ATTI(0):gyro:Y'],
             'IMU_ATTI(0):gyro:Z': log_data['IMU_ATTI(0):gyro:Z']}
     
+
+
 
 def write_pts(filename, pts):
     File_object = open(filename,"a+")

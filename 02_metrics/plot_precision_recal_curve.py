@@ -7,40 +7,107 @@ Created on Fri Nov  1 09:43:39 2019
 
 import sys
 import matplotlib.pyplot as plt
+import cv2
+import matplotlib.patches as patches
+import numpy as np
 
 sys.path.insert(1, './Object-Detection-Metrics/')
 from pascalvoc_funcs import get_precision_recals
 
 
+iou_threshold = 0.5
 
-iouThreshold = 0.5
-gtFolder = './groundtruths/Val_201912'
+gtFolder = './groundtruths/val2020'
 #detFolder = './detections/val_20191101 '
-detFolder = './detections/00_xlibra201912_epoch8_nosplit'
+detFolder = './detections/03_libra20200110_2_epoch4_pred'
 
-#metrics = get_precision_recals(iouThreshold, gtFolder, detFolder )[0]
+print(0)
+metrics = get_precision_recals(iou_threshold, gtFolder, detFolder )[0]
+print('{0:.3f}'.format(metrics['AP']))
 
 
-iouThresholds =[ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-iouThresholds =[ 0.5 ]
-precisions = []
-recalls = []
-APs = []
 
-for T in iouThresholds:
-    #print(T)
-    metrics = get_precision_recals(T, gtFolder, detFolder )[0]
-    precisions.append(metrics['precision'])
-    recalls.append(metrics['recall'])
-    APs.append(metrics['AP'])
-    print('{0:.3f}'.format(metrics['AP']))
+
+
+#precisions = []
+#recalls = []
+#APs = [metrics['AP']]
+#
+#resolutions = [50, 75, 100, 125, 150, 175, 200, 250, 300]#, 350]
+#
+#for resolution in resolutions:
+#    print(resolution)
+#    gt_Folder = 'groundtruths/Train_201912_sheep_resolution_'+ str(resolution)+'+'
+#    detFolder = 'detections/Train_201912_sheep_resolution_'+ str(resolution)+'+'
+#    
+#    metrics = get_precision_recals(iou_threshold, gt_Folder, detFolder )[0]
+##    precisions.append(metrics['precision'])
+##    recalls.append(metrics['recall'])
+#    APs.append(metrics['AP'])
+#    print('{0:.3f}'.format(metrics['AP']))
+#    
+#plt.figure()
+#plt.plot(APs)
+
+
+#plt.rcParams.update({'font.size': 20})
+
+#plt.figure(figsize=(15, 10))
+#plt.title('Precision x Recall curve /n Class: sheep AP: 93.21 %', fontsize=24)
+#plt.box(False)
+#plt.ylabel('Precision')
+#plt.xlabel('Recall')
+#plt.grid()
+#plt.plot(metrics['recall'], metrics['precision'], label= 'AP: ' + str(round(metrics['AP'], 3)))
+##plt.legend()
+
+#FP_dets = []
+#labels = np.load('G:/SAU/Labeled/Val/00_labels.npy', allow_pickle=True).item()
+#
+#for i in range( len(metrics['detections'])):
+#    if metrics['FP'][i]:
+#        FP_dets.append(metrics['detections'][i])
+#        try:
+#            b=100
+#            fig,ax = plt.subplots(1, figsize=(20,20))
+#            im_name =  metrics['detections'][i][0] + '.JPG'
+#            im = cv2.imread('G:/SAU/Labeled/Val/' + im_name)
+#            minx, miny, maxx, maxy = metrics['detections'][i][3]
+##            im = im[int(miny)-b:int(maxy)+b, int(minx)-b:int(maxx)+b]
+#            
+##            rect = patches.Rectangle((b,b),int(maxx)-int(minx),int(maxy)-int(miny),linewidth=1,edgecolor='red',facecolor='none')      
+#            ax.imshow(im)
+#            
+#            label = labels[im_name]['labels']
+#            
+#            for l in label:
+#                geom = l['geometry']
+#        
+#                xmin, ymin = geom[0]
+#                xmax, ymax = geom[1]
+#                w = xmax - xmin
+#                h = ymax - ymin
+#                rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor='#92d050',facecolor='none')      
+#                ax.add_patch(rect)
+#            
+#            rect = patches.Rectangle((int(minx),int(miny)),int(maxx)-int(minx),int(maxy)-int(miny),linewidth=2,edgecolor='red',facecolor='none')      
+#            ax.add_patch(rect)
+#            
+#            
+#            plt.savefig('C:/Users/karim/OneDrive - NTNU/Documents/00 I og IKT/36 Prosjektoppgave/Figures/FPS/' +metrics['detections'][i][0])
+#
+#            
+#        except:
+#            print(metrics['detections'][i])
+        
+
 
 
 #plt.rcParams.update({'font.size': 14, 'font.family' : 'normal', 'font.weight': 'normal'})
 #import matplotlib as mpl
 #mpl.rcParams.update(mpl.rcParamsDefault)
 #plt.figure(figsize =(15,10))
-##plt.plot(recalls, precisions)  
+#plt.plot(recalls, precisions)  
 #for i in range(len(precisions)):
 #    plt.plot(recalls[i], precisions[i], label= 'T: ' + str(iouThresholds[i]) + ', AP: ' + str(APs[i]))
 
@@ -50,9 +117,9 @@ for T in iouThresholds:
 #plt.xlim([0.1, 1])
 #plt.ylim([0.7, 1])
 #plt.legend()
-
-print('PRESISION {0:.3f}'.format( metrics['total TP'] / (metrics['total TP'] + metrics['total FP'])))
-print('RECALL {0:.3f}'.format(  metrics['total TP'] /metrics['total positives']))
+#
+#print('PRESISION {0:.3f}'.format( metrics['total TP'] / (metrics['total TP'] + metrics['total FP'])))
+#print('RECALL {0:.3f}'.format(  metrics['total TP'] /metrics['total positives']))
 
 
 
@@ -90,7 +157,13 @@ print('RECALL {0:.3f}'.format(  metrics['total TP'] /metrics['total positives'])
 ## 00_libra20191212_epoch8: 0.933 mAP
 # C0.85, PRESISION 0.882, RECALL 0.875
 # C0.875, PRESISION 0.904, RECALL 0.840
+#(no_split: mAP 0.764)
 
+## 00_libra201913_epoch2: 0.932 mAP
+# C0.5 PRESISION 0.572, RECALL 0.958
+# C0.75 PRESISION 0.800, RECALL 0.917
+# C0.85 PRESISION 0.891, RECALL 0.871
+# C0.86 PRESISION 0.907, RECALL 0.861
 
 
 ## 01_libra_nosplit
