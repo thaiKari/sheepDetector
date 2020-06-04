@@ -10,7 +10,7 @@ from transformations import transform_vis_pt_list_to_IR_coordinate_system
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-im_label_map = np.load('G:/SAU/Labeled/00_annotations/00_all_labels.npy',  allow_pickle=True).item() 
+im_label_map = np.load('G:/SAU/Labeled/00_annotations/all_labelled_20205013.npy',  allow_pickle=True).item() 
 
 new_im_label_map = {}
 ##TRANSFORM ALL LABELS TO IR COORDSYSTEM
@@ -39,10 +39,10 @@ for k in im_label_map.keys():
 
         new_im_label_map[k] = {'labels': labels}
         
-np.save('G:/SAU/Labeled/00_annotations/00_all_labels_IR.npy', new_im_label_map)
+np.save('G:/SAU/Labeled/00_annotations/all_labelled_20205013_infrared.npy', new_im_label_map)
 
 #visualize
-im = cv2.imread('G:/SAU/Fra Jens/Datasett1_termisk/ikke_MSX/aug19_101MEDIA_DJI_0595.jpg')
+im = cv2.imread('G:/SAU/Labeled/00_Test2020/00_infrared/may20_100MEDIA_DJI_0518.JPG')
 
 # Create figure and axes
 fig,ax = plt.subplots(1, figsize=(10, 20))
@@ -50,7 +50,7 @@ fig,ax = plt.subplots(1, figsize=(10, 20))
 # Display the image
 ax.imshow(im)
 
-for l in new_im_label_map['aug19_101MEDIA_DJI_0595.JPG']['labels']:
+for l in new_im_label_map['may20_100MEDIA_DJI_0518.JPG']['labels']:
     geom = l['geometry']
     
     xmin, ymin = geom[0]

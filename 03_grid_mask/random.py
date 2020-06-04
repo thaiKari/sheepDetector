@@ -25,24 +25,24 @@ from shutil import copyfile
 
 
 
-path = 'G:/SAU/Labeled/Train2020/4d_vis_plus_ir2'
+path = 'G:/SAU/Labeled/00_Val2020_2/01_infrared_align'
 w = 3200
 h = 2400
 
 #
-labels = np.load('G:/SAU/Labeled/00_annotations/00_all_labels_20200107_crop_for_alignment2.npy', allow_pickle=True).item()
-#im_name = list(labels.keys())[1] #'oct19_103MEDIA_DJI_0642.npy'
+labels = np.load( os.path.join(path,'00_labels.npy') , allow_pickle=True).item()
+im_name = 'sep19_102MEDIA_DJI_0423.JPG'
 ##fixed_grid_bbox_labels = {}
 ##
 ##im = np.load(os.path.join(path, im_name))
-#im = cv2.imread(os.path.join(path, im_name))
+im = cv2.imread(os.path.join(path, im_name))
 #
 #yolo_str = map_to_yolo(labels, im.shape[1], im.shape[0])
 #
 ##with open(os.path.join(path,"00_labels_yolo.txt"), "w") as text_file:
 ##    text_file.write(yolo_str)
 #
-#show_im_with_bbox_and_grid(im[:,:,:3], labels[im_name]['labels'],grid_shape=(3,4), cmap='gray', bbox_edge_color='red')
+show_im_with_bbox_and_grid(im[:,:,:3], labels[im_name]['labels'],grid_shape=(6,8), cmap='gray', bbox_edge_color='red')
 #
 #print grid to txt file
 grid_shape = (6,8)
@@ -54,18 +54,18 @@ label_filename = '00_grid_3_4.txt'
 #with open(os.path.join( path, label_filename), "w") as file:
 #    file.write('')
 
-n=0
-for key in os.listdir(path):#labels.keys():
-    if('MEDIA_DJI' in key) :
-        n= n+1
-        print(key)
-##        with open(os.path.join( path, label_filename), "a") as file:
-##            file.write(key[:-4] + ' ')
-        
-        if n %3 == 0:
-            im_labels = labels[key[:-4] + '.JPG']['labels']
-            im = np.load(os.path.join(path,key))
-            show_im_with_bbox_and_grid(im[:,:,-1], im_labels , grid_shape=grid_shape, cmap='gray', bbox_edge_color='red')
+#n=0
+#for key in os.listdir(path):#labels.keys():
+#    if('MEDIA_DJI' in key) :
+#        n= n+1
+#        print(key)
+###        with open(os.path.join( path, label_filename), "a") as file:
+###            file.write(key[:-4] + ' ')
+#        
+#        if n %3 == 0:
+#            im_labels = labels[key[:-4] + '.JPG']['labels']
+#            im = np.load(os.path.join(path,key))
+#            show_im_with_bbox_and_grid(im[:,:,-1], im_labels , grid_shape=grid_shape, cmap='gray', bbox_edge_color='red')
 
 #        grid = np.zeros(grid_shape, np.uint8)
 #        

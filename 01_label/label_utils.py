@@ -148,26 +148,29 @@ def csv_to_label_map(labels):
 
         if(label['Label'] != 'Skip'):
             boxes = json.loads(label['Label'])
-            for b in boxes['Sheep']:
-                geom = list(b['geometry'])
-                xs = list(map( lambda g: g['x'], geom))
-                ys = list(map( lambda g: g['y'], geom))
-                xmin = np.min(xs)
-                xmax = np.max(xs)
-                ymin = np.min(ys)
-                ymax = np.max(ys)
+            if 'Sheep' in boxes.keys():
+                for b in boxes['Sheep']:
+                    geom = list(b['geometry'])
+                    xs = list(map( lambda g: g['x'], geom))
+                    ys = list(map( lambda g: g['y'], geom))
+                    xmin = np.min(xs)
+                    xmax = np.max(xs)
+                    ymin = np.min(ys)
+                    ymax = np.max(ys)
+    
+                    
+                    if 'sheep_color' in b.keys():
+                        label_obj = {'sheep_color':b['sheep_color'],
+                                     'geometry': [ [xmin, ymin], [xmax, ymax] ]}
+                    else:
+                        label_obj = {'geometry': [ [xmin, ymin], [xmax, ymax] ]}
 
-                
-                if 'sheep_color' in b.keys():
-                    label_obj = {'sheep_color':b['sheep_color'],
-                                 'geometry': [ [xmin, ymin], [xmax, ymax] ]}
-                else:
-                    label_obj = {'geometry': [ [xmin, ymin], [xmax, ymax] ]}
-
-                if( 'labels' not in im_obj):
-                    im_obj['labels'] = [label_obj]
-                else:
-                    im_obj['labels'].append(label_obj)
+                    label_obj['is_lamb'] = ( 'is_lamb' in b.keys() )
+    
+                    if( 'labels' not in im_obj):
+                        im_obj['labels'] = [label_obj]
+                    else:
+                        im_obj['labels'].append(label_obj)
 
                 
         im_label_map[im_id] = im_obj
@@ -364,7 +367,7 @@ def get_labels_from_crop(xmin, ymin , w_new, h_new, labels):
             geom_ymax_new = h_new -1
                    
     # Only keep box if w or h greater than threshold
-        T=5
+        T=10
         if geom_xmax_new - geom_xmin_new > T and geom_ymax_new - geom_ymin_new > T:                
             new_label = l.copy()
             new_label['geometry'] = [[geom_xmin_new, geom_ymin_new],[geom_xmax_new, geom_ymax_new]]
@@ -445,6 +448,48 @@ def grid_cell_has_label(grid_xmin, grid_ymin, grid_xmax, grid_ymax, labels):
     return False
 
 
+
+def show_im_with_bbox_and_pred_grid(im, labels, pred_grid, Threshold, grid_shape=(6,8), save_to_filename = False, cmap=None, bbox_edge_color='#92d050'):
+    fig,ax = plt.subplots(1, figsize=(20, 20))
+    ax.imshow(im, cmap=cmap)    
+    
+
+#        plt.text(xmin,ymin, round(l['confidence'], 3), c='red', fontsize=18 )
+    grid_h = math.floor(im.shape[0]/ grid_shape[0])
+    grid_w = math.floor(im.shape[1]/ grid_shape[1])
+    
+    for x in range(grid_shape[1]):
+        for y in range(grid_shape[0]):
+            if pred_grid[y][x]>Threshold:
+                rect = patches.Rectangle((x*grid_w,y*grid_h),grid_w,grid_h,linewidth=2,edgecolor='green',facecolor='green', alpha=0.3)      
+#                t = ax.text(x*grid_w + grid_w/2 ,y*grid_h+ grid_h/2,
+#                            str(pred_grid[y,x])[:4],
+#                           horizontalalignment='center',
+#                            verticalalignment='center',
+#                            fontsize=20, color='red')
+#                t.set_bbox(dict(facecolor='black', alpha=0.3, edgecolor='black'))
+            else:
+                rect = patches.Rectangle((x*grid_w,y*grid_h),grid_w,grid_h,linewidth=2,edgecolor='white',facecolor='white', alpha = 0.2)      
+            t = ax.text(x*grid_w + grid_w/2 ,y*grid_h+ grid_h/2,
+                        str(pred_grid[y,x])[:4],
+                       horizontalalignment='center',
+                        verticalalignment='center',
+                        fontsize=16, color='white')
+            t.set_bbox(dict(facecolor='black', alpha=0.3, edgecolor='black'))
+            ax.add_patch(rect)
+        
+    
+    for l in labels:
+        xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
+        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor=bbox_edge_color,facecolor='none')      
+        ax.add_patch(rect)
+    
+    if save_to_filename:
+        plt.savefig(save_to_filename)
+    plt.draw()
+    plt.show()                                
+                                    
+
 def show_im_with_bbox_and_grid(im, labels,grid_shape=(6,8), save_to_filename = False, cmap=None, bbox_edge_color='#92d050'):
     fig,ax = plt.subplots(1, figsize=(20, 20))
     ax.imshow(im, cmap=cmap)    
@@ -461,6 +506,7 @@ def show_im_with_bbox_and_grid(im, labels,grid_shape=(6,8), save_to_filename = F
             else:
                 rect = patches.Rectangle((x*grid_w,y*grid_h),grid_w,grid_h,linewidth=2,edgecolor='white',facecolor='none')      
             ax.add_patch(rect)
+            
     
     for l in labels:
         xmin, ymin, xmax, ymax, w, h = get_xmin_ymin_xmax_ymax_w_h_from_label(l)
@@ -599,7 +645,7 @@ def map_to_coco(data, w0=0, h0=0, grid_type=False):
                     annotations.append({
                             'id': label_n,
                             'im_name': k,
-                            'bbox': [xmin, ymin, w, h],
+                            'bbox': [xmin-1, ymin-1, w, h],
                             'image_id':im_n,
                             'segmentation':[],
                             'ignore':0,
@@ -870,10 +916,10 @@ def rotate_crop_60(im_path, labels):
     
 
 
-path = 'G:/SAU/Labeled/00_Annotations'
-labels = pd.read_csv(os.path.join(path, 'grid_boxes_3_4_20200123.csv'))
-label_map = csv_to_label_map(labels)
-np.save(os.path.join(path, '00_grid_boxes_3_4_20200123.npy'), label_map)
+#path = 'G:/SAU/Labeled/00_Annotations'
+#labels = pd.read_csv(os.path.join(path, 'grid_boxes_3_4_20200123.csv'))
+#label_map = csv_to_label_map(labels)
+#np.save(os.path.join(path, '00_grid_boxes_3_4_20200123.npy'), label_map)
 
 ##dst_path = 'G:/SAU/Labeled/All_labeled_IR'
 #new_label_map = {}

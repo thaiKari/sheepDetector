@@ -7,9 +7,9 @@ Created on Wed Oct  9 17:41:56 2019
 import re
 import os
 import numpy as np
-#
+
 #name_map = {}
-#
+
 def increment_im(im_name, n):
     im_name_part = im_name[-12:]
     dir_part=im_name[:-12]    
@@ -25,12 +25,12 @@ def increment_im(im_name, n):
         return next_im_name
     
     return os.path.join(dir_part, next_im_name)
-#
-#
-#def get_im_num(im_name):
-#    return int(re.search(r"\d+" , im_name[-12:]).group(0))
-#
-#
+
+
+def get_im_num(im_name):
+    return int(re.search(r"\d+" , im_name[-12:]).group(0))
+
+
 #im_from = 'DJI_0698.JPG'
 #im_to = 'DJI_0998.JPG'
 #cur_im = im_from
@@ -105,26 +105,26 @@ def increment_im(im_name, n):
 
 ## RENAME IMAGES IN DIR BY LOGIC
         
-d = 'G:/SAU/Should_label/g27'
+d = 'G:/SAU/2020/20200510_orkanger/rgb'
 
 for path in os.listdir(d):
     full_path = os.path.join(d, path)
     if os.path.isfile(full_path):
         print(path)
-        new_path = os.path.join(d, 'sep19_101MEDIA_'+ path)
+        new_path = os.path.join(d, 'may20_101MEDIA_'+ path)
         print(new_path)
         os.rename(full_path, new_path)
 
 
 ## GIVE THERMAL IMAGES SAME NAME AS CORRESPONDING OPTICAL IMAGE
-d = 'G:/SAU/Should_label/g27/IR'
+d = 'G:/SAU/2020/20200510_orkanger/infrared'
 
 for path in os.listdir(d):
     full_path = os.path.join(d, path)
     if os.path.isfile(full_path):
         print(path)
 #        print(increment_im(path, -1))
-        new_path = os.path.join(d, 'sep19_101MEDIA_'+ increment_im(path, -1))
+        new_path = os.path.join(d, 'may20_101MEDIA_'+ increment_im(path, -1))
         print(new_path)
         os.rename(full_path, new_path)
 

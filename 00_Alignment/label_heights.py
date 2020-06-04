@@ -12,49 +12,55 @@ import math
 import matplotlib.pyplot as plt
 from shutil import copyfile
 
-im_path ='G:/SAU/Labeled/Val'
-im_path_new = 'G:/SAU/Labeled/Val2020'
+im_path ='G:/SAU/Labeled/AUG_labeled_has_IR'
+annotation_path = 'G:/SAU/Labeled/00_annotations'
 ims = os.listdir(im_path)
-
-sheep_resolutions = np.load(os.path.join(im_path, 'sheep_resolution.npy'), allow_pickle = True).item()
-
-for k in sheep_resolutions.keys():
-    resolution = sheep_resolutions[k]['median_diagonal']
-    if resolution <=300 and resolution>50:
-        copyfile(im_path + '/' + k, im_path_new + '/' + k)
-
-## avg sheep diameter
-#labels = np.load( os.path.join(im_path, '00_labels.npy'), allow_pickle = True).item()
-#sheep_diam={}
-#xS = []
-#Small = []
-#Medium = []
-#Large = []
 #
-#for k in ims:
-#    if '.JPG' in k:
-#        item = labels[k]
-#        diams = []    
-#        for l in item['labels']:
-#            minx, miny = l['geometry'][0]
-#            maxx, maxy = l['geometry'][1]
-#            w = maxx - minx
-#            h = maxy - miny
-#            diam = math.sqrt( w**2 + h**2)
-#            diams.append(diam)
-#        median_diam = np.median(diams)
+#sheep_resolutions = np.load(os.path.join(im_path, 'sheep_resolution.npy'), allow_pickle = True).item()
+#
+#for k in sheep_resolutions.keys():
+#    resolution = sheep_resolutions[k]['median_diagonal']
+#    if resolution <=300 and resolution>50:
+#        copyfile(im_path + '/' + k, im_path_new + '/' + k)
+
+# avg sheep diameter
+labels = np.load( os.path.join(annotation_path, '00_all_labels_20200107.npy'), allow_pickle = True).item()
+sheep_diam={}
+xS = []
+Small = []
+Medium = []
+Large = []
+
+for k in ims:
+    if '.JPG' in k and not '(2)' in k:
+#        print(k)
+        item = labels[k]
+        diams = []    
+        for l in item['labels']:
+            minx, miny = l['geometry'][0]
+            maxx, maxy = l['geometry'][1]
+            w = maxx - minx
+            h = maxy - miny
+            diam = math.sqrt( w**2 + h**2)
+            diams.append(diam)
+        median_diam = np.median(diams)
+        
+        if median_diam >300 or median_diam < 50:
+            os.remove(os.path.join(im_path, k))
+            os.remove(os.path.join(im_path, k[:-4] + ' (2).JPG'))
+        
+        
+#        if median_diam < 50:
+#            xS.append(k)
+#        elif median_diam < 100:
+#            Small.append(k)
+#        elif median_diam < 300:
+#            Medium.append(k)
+#        else:
+#            Large.append(k)
 #        
-##        if median_diam < 50:
-##            xS.append(k)
-##        elif median_diam < 100:
-##            Small.append(k)
-##        elif median_diam < 300:
-##            Medium.append(k)
-##        else:
-##            Large.append(k)
-##        
-##        if(median_diam > 149 and median_diam < 151):
-##            print(k, median_diam)
+#        if(median_diam > 149 and median_diam < 151):
+#            print(k, median_diam)
 #        sheep_diam[k]= {
 #                'diagonals':diams,
 #                'median_diagonal': median_diam

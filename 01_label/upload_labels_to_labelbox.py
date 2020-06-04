@@ -120,19 +120,21 @@ import os
 #        "name": "Train_new",
 #        "id": "ck2d149qad7zb09442elxsqa9"
 #      }
-#project ={
-#        "name": "All_labeled",
-#        "id": "ck2egxkw6xf7z0944mg6e7nd0"
-#      }
-project = {
-        "name": "grid_4d_IR_only2",
-        "id": "ck5qpqm5647jv08356d30jfsb"
+project ={
+        "name": "All_labeled",
+        "id": "ck2egxkw6xf7z0944mg6e7nd0"
       }
+#project = {
+#        "name": "grid_4d_IR_only2",
+#        "id": "ck5qpqm5647jv08356d30jfsb"
+#      }
 #im_label_map = np.load('im_label_map_new_names.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('im_label_map_THERMAL.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('G:/SAU/Fra Jens/Datasett1 - Copy - Copy/has_label_grouped/Val_g5_9/labels.npy',  allow_pickle=True).item() 
 #im_label_map = np.load('G:/SAU/Fra Jens/Datasett1 - Copy - Copy/has_label_grouped/Train/labels.npy',  allow_pickle=True).item() 
-im_label_map = np.load('G:/SAU/Labeled/Val2020/Visual_IR_cropped2/00_labels_fixed_grid_bbox.npy',  allow_pickle=True).item() 
+im_label_map = np.load('G:/SAU/2020/TEST_may2020.npy',  allow_pickle=True).item() 
+done = list(np.load('G:/SAU/2020/20200509_klaebu/TEST_may2020.npy',  allow_pickle=True).item().keys())
+#done = []
 
 json_data = label_dict_to_json(im_label_map)
 json_data_map = {}
@@ -146,27 +148,30 @@ failed_label_uploads = []
 ## upload labels to labelbox:
 for k in json_data_map:
     print(k)
-    try:
-        label = json_data_map[k]
-        if(label != '"Skip"'):
-            print('no skip')
-            create_label(json_data_map[k], project["id"], get_row_id( project["id"], k))
-        else:
-            print('Skip', label)
-            print('==============================')
-    except:
-        print('failed', k)
-        failed_label_uploads.append(k)
+    
+    if k not in done:
+        try:
+            label = json_data_map[k]
+            if(label != '"Skip"'):
+                print('no skip')
+                create_label(json_data_map[k], project["id"], get_row_id( project["id"], k))
+            else:
+                print('Skip', label)
+                print('==============================')
+            done.append(k)
+        except:
+            print('failed', k)
+            failed_label_uploads.append(k)
         
 #
 
-failed_label_uploads2=[]
-for k in failed_label_uploads:
-    print(k)
-    
-    try:
-        create_label(json_data_map[k], project["id"], get_row_id( project["id"], k))
-    except:
-        failed_label_uploads2.append(k)
-#        
+#failed_label_uploads2=[]
+#for k in failed_label_uploads:
+#    print(k)
+#    
+#    try:
+#        create_label(json_data_map[k], project["id"], get_row_id( project["id"], k))
+#    except:
+#        failed_label_uploads2.append(k)
+        
     
